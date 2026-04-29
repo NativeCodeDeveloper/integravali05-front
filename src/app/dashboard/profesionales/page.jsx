@@ -258,22 +258,18 @@ export default function Profesionales() {
                         </div>
 
                         <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row">
-                            {
-                                /*
-                                                            <ButtonDinamic
+                            <ButtonDinamic
                                 onClick={() => insertarProfesional(nombreProfesional,descripcionProfesional)}
                                 className="rounded-xl bg-gradient-to-r from-indigo-700 to-teal-600 shadow-md shadow-indigo-500/20 hover:from-indigo-800 hover:to-teal-700"
                             >
                                 Guardar Profesional
                             </ButtonDinamic>
-                                * */
-                            }
 
                             <ButtonDinamic
                                 onClick={() => actualizarProfesional(nombreProfesional,descripcionProfesional,id_profesional)}
                                 className="rounded-xl bg-gradient-to-r from-indigo-700 to-teal-600 shadow-md shadow-indigo-500/20 hover:from-indigo-800 hover:to-teal-700"
                             >
-                                Actualizar Datos
+                                Actualizar Profesional
                             </ButtonDinamic>
 
 

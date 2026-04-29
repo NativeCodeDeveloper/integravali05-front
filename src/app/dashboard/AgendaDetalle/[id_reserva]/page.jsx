@@ -202,11 +202,19 @@ export default function AgendaDetalle() {
         }
     }
 
+    const normalizarEstadoReserva = (estado = "") =>
+        String(estado)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
     const estadoColor = (estado) => {
         if (!estado) return "bg-slate-100 text-slate-600";
-        const e = estado.toLowerCase();
+        const e = normalizarEstadoReserva(estado);
+        if (e === "asiste") return "bg-cyan-50 text-cyan-800 ring-cyan-200";
+        if (e === "no asiste" || e === "no asistio" || e === "no asistste") return "bg-pink-50 text-pink-800 ring-pink-200";
+        if (e === "finalizado") return "bg-orange-50 text-orange-800 ring-orange-200";
         if (e === "confirmada") return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-        if (e === "completada") return "bg-sky-50 text-sky-700 ring-sky-200";
         if (e === "anulada") return "bg-red-50 text-red-700 ring-red-200";
         if (e === "pendiente pago") return "bg-amber-50 text-amber-700 ring-amber-200";
         return "bg-indigo-50 text-indigo-700 ring-indigo-200";
@@ -237,7 +245,7 @@ export default function AgendaDetalle() {
                                 Volver a Agenda
                             </button>
                         </Link>
-                        <InfoButton informacion={'En esta seccion puedes enviar mensajes automaticos de recordatorio a tus pacientes. El mensaje se enviara al correo que registraron al momento de agendar su hora.\n\nAdemas, puedes gestionar el estado de cada cita (Reservada, Confirmada, Completada, Anulada o Pendiente de pago).\n\nImportante: al eliminar una cita, esta se borrara de forma permanente y no podra recuperarse.'}/>
+                        <InfoButton informacion={'En esta seccion puedes enviar mensajes automaticos de recordatorio a tus pacientes. El mensaje se enviara al correo que registraron al momento de agendar su hora.\n\nAdemas, puedes gestionar el estado de cada cita (Reservada, Confirmada, Asiste, No asiste, Finalizado, Anulada o Pendiente de pago).\n\nImportante: al eliminar una cita, esta se borrara de forma permanente y no podra recuperarse.'}/>
                     </div>
                 </div>
 
@@ -245,7 +253,15 @@ export default function AgendaDetalle() {
                 {dataReservaId.map(data => (
                     <div key={data.id_reserva} className="mb-6">
                         <span className={"inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold ring-1 " + estadoColor(data.estadoReserva)}>
-                            <span className={"h-1.5 w-1.5 rounded-full " + (data.estadoReserva?.toLowerCase() === "confirmada" ? "bg-emerald-500" : data.estadoReserva?.toLowerCase() === "anulada" ? "bg-red-500" : data.estadoReserva?.toLowerCase() === "completada" ? "bg-sky-500" : data.estadoReserva?.toLowerCase() === "pendiente pago" ? "bg-amber-500" : "bg-indigo-500")} />
+                            <span className={"h-1.5 w-1.5 rounded-full " + (
+                                normalizarEstadoReserva(data.estadoReserva) === "asiste" ? "bg-cyan-500" :
+                                normalizarEstadoReserva(data.estadoReserva) === "no asiste" || normalizarEstadoReserva(data.estadoReserva) === "no asistio" || normalizarEstadoReserva(data.estadoReserva) === "no asistste" ? "bg-pink-500" :
+                                normalizarEstadoReserva(data.estadoReserva) === "finalizado" ? "bg-orange-500" :
+                                normalizarEstadoReserva(data.estadoReserva) === "confirmada" ? "bg-emerald-500" :
+                                normalizarEstadoReserva(data.estadoReserva) === "anulada" ? "bg-red-500" :
+                                normalizarEstadoReserva(data.estadoReserva) === "pendiente pago" ? "bg-amber-500" :
+                                "bg-indigo-500"
+                            )} />
                             {data.estadoReserva}
                         </span>
                     </div>
@@ -372,7 +388,9 @@ export default function AgendaDetalle() {
                                         <SelectGroup>
                                             <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="reservada">Reservada</SelectItem>
                                             <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="confirmada">Confirmada</SelectItem>
-                                            <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="completada">Completada</SelectItem>
+                                            <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="asiste">Asiste</SelectItem>
+                                            <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="no asiste">No Asiste</SelectItem>
+                                            <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="finalizado">Finalizado</SelectItem>
                                             <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="anulada">Anulada</SelectItem>
                                             <SelectItem className="cursor-pointer rounded-lg focus:bg-sky-50" value="pendiente pago">Pendiente de Pago</SelectItem>
                                         </SelectGroup>

@@ -61,6 +61,35 @@ function getGreeting() {
     return "Buenas noches";
 }
 
+function normalizarEstadoReserva(estado = "") {
+    return String(estado)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function estadoDotClass(estado) {
+    const normalizado = normalizarEstadoReserva(estado);
+    if (normalizado === "asiste") return "bg-cyan-400 shadow-sm shadow-cyan-400/40";
+    if (normalizado === "no asiste" || normalizado === "no asistio" || normalizado === "no asistste") return "bg-pink-400 shadow-sm shadow-pink-400/40";
+    if (normalizado === "finalizado") return "bg-orange-400 shadow-sm shadow-orange-400/40";
+    if (normalizado === "confirmada") return "bg-emerald-400 shadow-sm shadow-emerald-400/40";
+    if (normalizado === "reservada") return "bg-indigo-400 shadow-sm shadow-indigo-400/40";
+    if (normalizado === "anulada") return "bg-red-400 shadow-sm shadow-red-400/40";
+    return "bg-slate-300";
+}
+
+function estadoBadgeClass(estado) {
+    const normalizado = normalizarEstadoReserva(estado);
+    if (normalizado === "asiste") return "bg-cyan-500/15 text-cyan-500";
+    if (normalizado === "no asiste" || normalizado === "no asistio" || normalizado === "no asistste") return "bg-pink-500/15 text-pink-500";
+    if (normalizado === "finalizado") return "bg-orange-500/15 text-orange-500";
+    if (normalizado === "confirmada") return "bg-emerald-500/15 text-emerald-400";
+    if (normalizado === "reservada") return "bg-indigo-500/15 text-indigo-400";
+    if (normalizado === "anulada") return "bg-red-500/15 text-red-400";
+    return "bg-slate-100 text-slate-500";
+}
+
 function MiniCalendar() {
     const now = new Date();
     const year = now.getFullYear();
@@ -157,7 +186,7 @@ export default function DashboardHome() {
         hora: cita.horaInicio || "--:--",
         paciente: `${cita.nombrePaciente || ""} ${cita.apellidoPaciente || ""}`.trim(),
         tipo: cita.estadoReserva || "Sin estado",
-        estado: cita.estadoReserva?.toLowerCase() || "reservada",
+        estado: normalizarEstadoReserva(cita.estadoReserva || "reservada"),
         iniciales: `${(cita.nombrePaciente || "")[0] || ""}${(cita.apellidoPaciente || "")[0] || ""}`.toUpperCase(),
         nombreProfesional: cita.nombreProfesional || "Sin profesional",
     }));
@@ -316,13 +345,7 @@ export default function DashboardHome() {
                                         </div>
 
                                         <div className="flex flex-col items-center gap-0.5">
-                                            <div className={cn(
-                                                "h-2 w-2 rounded-full",
-                                                cita.estado === "confirmada" && "bg-emerald-400 shadow-sm shadow-emerald-400/40",
-                                                cita.estado === "reservada" && "bg-indigo-400 shadow-sm shadow-indigo-400/40",
-                                                cita.estado === "anulada" && "bg-red-400 shadow-sm shadow-red-400/40",
-                                                !["confirmada", "reservada", "anulada"].includes(cita.estado) && "bg-slate-300"
-                                            )} />
+                                            <div className={cn("h-2 w-2 rounded-full", estadoDotClass(cita.estado))} />
                                             <div className="h-6 w-px bg-slate-200" />
                                         </div>
 
@@ -337,18 +360,9 @@ export default function DashboardHome() {
 
                                         <span className={cn(
                                             "hidden sm:inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium capitalize",
-                                            cita.estado === "confirmada" && "bg-emerald-500/15 text-emerald-400",
-                                            cita.estado === "reservada" && "bg-indigo-500/15 text-indigo-400",
-                                            cita.estado === "anulada" && "bg-red-500/15 text-red-400",
-                                            !["confirmada", "reservada", "anulada"].includes(cita.estado) && "bg-slate-100 text-slate-500"
+                                            estadoBadgeClass(cita.estado)
                                         )}>
-                                            <span className={cn(
-                                                "h-1 w-1 rounded-full",
-                                                cita.estado === "confirmada" && "bg-emerald-400",
-                                                cita.estado === "reservada" && "bg-indigo-400",
-                                                cita.estado === "anulada" && "bg-red-400",
-                                                !["confirmada", "reservada", "anulada"].includes(cita.estado) && "bg-slate-300"
-                                            )} />
+                                            <span className={cn("h-1 w-1 rounded-full", estadoDotClass(cita.estado))} />
                                             {cita.nombreProfesional}
                                         </span>
 

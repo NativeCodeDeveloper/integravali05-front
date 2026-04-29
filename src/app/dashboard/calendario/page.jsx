@@ -23,6 +23,14 @@ const locales = {es: es};
 const dfStartOfWeek = (date) => startOfWeek(date, {locale: es});
 const localizer = dateFnsLocalizer({format, parse, startOfWeek: dfStartOfWeek, getDay, locales});
 const DnDCalendar = withDragAndDrop(Calendar);
+const HORA_MINIMA_AGENDA = 9;
+const HORA_MAXIMA_AGENDA = 20;
+
+function crearHoraLimite(hora, minuto = 0, segundo = 0) {
+    const fecha = new Date();
+    fecha.setHours(hora, minuto, segundo, 0);
+    return fecha;
+}
 
 export default function Calendario() {
     return (
@@ -79,6 +87,11 @@ function CalendarioContent() {
                 letter-spacing: 0.08em !important;
                 background: rgba(248, 250, 252, 0.85) !important;
             }
+            .rbc-time-view .rbc-header,
+            .rbc-time-view .rbc-time-gutter .rbc-label,
+            .rbc-time-view .rbc-time-slot {
+                font-size: 14.4px !important;
+            }
             .rbc-time-header-content,
             .rbc-time-content,
             .rbc-time-view,
@@ -93,6 +106,9 @@ function CalendarioContent() {
                 -webkit-overflow-scrolling: touch !important;
                 touch-action: pan-y !important;
                 overscroll-behavior: contain !important;
+            }
+            .rbc-time-view .rbc-timeslot-group {
+                min-height: 44px !important;
             }
             .rbc-time-slot {
                 transition: background-color 120ms ease !important;
@@ -142,11 +158,13 @@ function CalendarioContent() {
             .rbc-time-view .rbc-event {
                 min-height: 0 !important; padding: 1px 2px !important;
                 line-height: 1.1 !important; white-space: normal !important; overflow: hidden !important; word-break: break-word !important;
-                font-size: 40% !important;
+                font-size: 48% !important;
             }
             .rbc-month-view .rbc-day-slot { min-height: 80px !important; }
             .rbc-row-segment { z-index: 1 !important; }
             .rbc-event-label, .rbc-event-content { white-space: normal !important; overflow: visible !important; word-break: break-word !important; font-size: 40% !important; }
+            .rbc-time-view .rbc-event-label,
+            .rbc-time-view .rbc-event-content { font-size: 48% !important; }
             .rbc-event-label { display: none !important; }
             @media (min-width: 768px) {
                 .rbc-month-view .rbc-event-label,
@@ -298,6 +316,18 @@ function CalendarioContent() {
         return new Date(`${soloFecha}T${hora}`);
     }
 
+    function estaDentroHorarioAgenda(start, end) {
+        if (!(start instanceof Date) || Number.isNaN(start.getTime())) return false;
+        if (!(end instanceof Date) || Number.isNaN(end.getTime())) return false;
+
+        const minutosInicio = start.getHours() * 60 + start.getMinutes();
+        const minutosFin = end.getHours() * 60 + end.getMinutes();
+        const minimo = HORA_MINIMA_AGENDA * 60;
+        const maximo = HORA_MAXIMA_AGENDA * 60;
+
+        return minutosInicio >= minimo && minutosFin <= maximo && end > start;
+    }
+
     function normalizarRut(valor = "") {
         return String(valor).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
     }
@@ -435,6 +465,55 @@ function CalendarioContent() {
         });
     }
 
+    function actualizarBorradorSeleccion(start, end) {
+        const nextDraft = {
+            start,
+            end,
+            profesional: obtenerNombreProfesionalSeleccionado(),
+        };
+
+        setSelectionDraft(nextDraft);
+        setFloatingDraft({
+            id: "draft-selection",
+            title: "Nuevo agendamiento",
+            start,
+            end,
+            tipo: "seleccion",
+        });
+        setfechaInicio(formatearFechaLocal(start));
+        setHoraInicio(start.toTimeString().slice(0, 8));
+        setfechaFinalizacion(formatearFechaLocal(end));
+        setHoraFinalizacion(end.toTimeString().slice(0, 8));
+    }
+
+    function actualizarHoraSeleccionDraft(campo, valorHora) {
+        if (!selectionDraft || !valorHora) return;
+
+        const [horas, minutos] = valorHora.split(":").map(Number);
+        if (Number.isNaN(horas) || Number.isNaN(minutos)) return;
+
+        const nuevoInicio = new Date(selectionDraft.start);
+        const nuevoFin = new Date(selectionDraft.end);
+
+        if (campo === "start") {
+            nuevoInicio.setHours(horas, minutos, 0, 0);
+        } else {
+            nuevoFin.setHours(horas, minutos, 0, 0);
+        }
+
+        if (!estaDentroHorarioAgenda(nuevoInicio, nuevoFin)) {
+            toast.error("Solo puedes agendar entre 09:00 y 20:00 horas, con un rango valido.");
+            return;
+        }
+
+        if (isOverlapping(nuevoInicio, nuevoFin)) {
+            toast.error("La hora ajustada se superpone con otra reserva o bloqueo.");
+            return;
+        }
+
+        actualizarBorradorSeleccion(nuevoInicio, nuevoFin);
+    }
+
     function validarSeleccionPrevia(start, end, ignoredReservaId = null) {
         if (!id_profesional) {
             if (!selectionGuardRef.current.missingProfessional) {
@@ -444,6 +523,12 @@ function CalendarioContent() {
                     selectionGuardRef.current.missingProfessional = false;
                 }, 1200);
             }
+            setSelectionPreview(null);
+            return false;
+        }
+
+        if (!estaDentroHorarioAgenda(start, end)) {
+            toast.error("Solo puedes agendar entre 09:00 y 20:00 horas.");
             setSelectionPreview(null);
             return false;
         }
@@ -593,6 +678,10 @@ function CalendarioContent() {
                 toast.error("No es posible agendar en fechas NO vigentes");
                 return false;
             }
+            if (!estaDentroHorarioAgenda(inicio, final)) {
+                toast.error("Solo puedes agendar entre 09:00 y 20:00 horas.");
+                return false;
+            }
             if (final < inicio) {
                 toast.error("No es posible en fechas irreales");
                 return false;
@@ -740,6 +829,12 @@ function CalendarioContent() {
                 return toast.error("Debe indicar el rango y el motivo del bloqueo.");
             }
 
+            const inicio = new Date(`${fechaInicio}T${horaInicio}`);
+            const final = new Date(`${fechaFinalizacion}T${horaFinalizacion}`);
+            if (!estaDentroHorarioAgenda(inicio, final)) {
+                return toast.error("Solo puedes bloquear horarios entre 09:00 y 20:00 horas.");
+            }
+
             const res = await fetch(`${API}/bloqueoAgenda/InsertarBloqueo`, {
                 method: "POST",
                 headers: {Accept: "application/json", "Content-Type": "application/json"},
@@ -833,7 +928,7 @@ function CalendarioContent() {
         }));
         const eventosBloqueos = expandirBloqueosPorDia(dataBloqueos || []).map((bloqueo) => ({
             ...bloqueo,
-            allDay: currentView === "month",
+            allDay: false,
         }));
 
         if (currentView === "month") {
@@ -846,31 +941,70 @@ function CalendarioContent() {
         setBackgroundCalendarEvents(eventosBloqueos);
     }, [dataAgenda, dataBloqueos, currentView]);
 
-    const eventStyleGetter = (event) => {
-        const esBloqueo = event.tipo === "bloqueo";
-        const esSeleccion = event.tipo === "seleccion";
-        const esVistaMes = currentView === "month";
-        const estadoReservaNormalizado = event.resource?.estadoReserva?.toLowerCase?.() ?? "";
-        const paletteReserva = estadoReservaNormalizado === "confirmada"
-            ? {
+    function obtenerPaletaEstadoReserva(estadoReserva = "") {
+        const estadoNormalizado = estadoReserva
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+        if (estadoNormalizado === "asiste") {
+            return {
+                backgroundColor: "rgba(34, 211, 238, 0.20)",
+                color: "#0f766e",
+                accentColor: "#0891b2",
+                borderColor: "rgba(6, 182, 212, 0.30)"
+            };
+        }
+
+        if (estadoNormalizado === "no asiste" || estadoNormalizado === "no asistio" || estadoNormalizado === "no asistste") {
+            return {
+                backgroundColor: "rgba(244, 114, 182, 0.18)",
+                color: "#9d174d",
+                accentColor: "#db2777",
+                borderColor: "rgba(236, 72, 153, 0.28)"
+            };
+        }
+
+        if (estadoNormalizado === "finalizado") {
+            return {
+                backgroundColor: "rgba(251, 146, 60, 0.18)",
+                color: "#9a3412",
+                accentColor: "#ea580c",
+                borderColor: "rgba(249, 115, 22, 0.28)"
+            };
+        }
+
+        if (estadoNormalizado === "confirmada") {
+            return {
                 backgroundColor: "rgba(34, 197, 94, 0.22)",
                 color: "#14532d",
                 accentColor: "#166534",
                 borderColor: "rgba(34, 197, 94, 0.30)"
-            }
-            : estadoReservaNormalizado === "anulada"
-                ? {
-                    backgroundColor: "rgba(244, 63, 94, 0.18)",
-                    color: "#881337",
-                    accentColor: "#881337",
-                    borderColor: "rgba(225, 29, 72, 0.28)"
-                }
-                : {
-                    backgroundColor: "rgba(124, 58, 237, 0.20)",
-                    color: "#5b21b6",
-                    accentColor: "#5b21b6",
-                    borderColor: "rgba(124, 58, 237, 0.28)"
-                };
+            };
+        }
+
+        if (estadoNormalizado === "anulada") {
+            return {
+                backgroundColor: "rgba(244, 63, 94, 0.18)",
+                color: "#881337",
+                accentColor: "#881337",
+                borderColor: "rgba(225, 29, 72, 0.28)"
+            };
+        }
+
+        return {
+            backgroundColor: "rgba(124, 58, 237, 0.20)",
+            color: "#5b21b6",
+            accentColor: "#5b21b6",
+            borderColor: "rgba(124, 58, 237, 0.28)"
+        };
+    }
+
+    const eventStyleGetter = (event) => {
+        const esBloqueo = event.tipo === "bloqueo";
+        const esSeleccion = event.tipo === "seleccion";
+        const esVistaMes = currentView === "month";
+        const paletteReserva = obtenerPaletaEstadoReserva(event.resource?.estadoReserva);
 
         if (esBloqueo) {
             return {
@@ -985,7 +1119,8 @@ function CalendarioContent() {
     async function actualizarInformacionReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva) {
         try {
             if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !email || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional || !id_reserva) {
-                return toast.error("Debe llenar todos los campos para poder actualizar la reserva");
+                toast.error("Debe llenar todos los campos para poder actualizar la reserva");
+                return false;
             }
             const res = await fetch(`${API}/reservaPacientes/actualizarReservacion`, {
                 method: "POST",
@@ -993,16 +1128,22 @@ function CalendarioContent() {
                 mode: "cors",
                 body: JSON.stringify({nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva})
             });
-            if (!res.ok) return toast.error("El servidor no responde");
+            if (!res.ok) {
+                toast.error("El servidor no responde");
+                return false;
+            }
             const respuestaBackend = await res.json();
             if (respuestaBackend.message === true) {
                 setNombrePaciente(""); setApellidoPaciente(""); setTelefono(""); setRut(""); setEmail("");
                 await refrescarCalendario();
-                return toast.success("Se ha actualizado la reserva correctamente");
+                toast.success("Se ha actualizado la reserva correctamente");
+                return true;
             }
+            return false;
         } catch (error) {
             console.log(error);
-            return toast.error(error.message);
+            toast.error(error.message);
+            return false;
         }
     }
 
@@ -1043,6 +1184,33 @@ function CalendarioContent() {
 
     function limpiarData() {
         setNombrePaciente(""); setApellidoPaciente(""); setTelefono(""); setRut(""); setEmail("");
+    }
+
+    async function cambiarEstadoRapido(estadoNuevo) {
+        const nombreCompleto = `${nombrePaciente ?? ""} ${apellidoPaciente ?? ""}`.trim();
+        if (!id_reserva || !nombreCompleto) {
+            return toast.error("Debe seleccionar un paciente para cambiar su estado");
+        }
+
+        const actualizado = await actualizarInformacionReserva(
+            nombrePaciente,
+            apellidoPaciente,
+            rut,
+            telefono,
+            email,
+            fechaInicio,
+            horaInicio,
+            fechaFinalizacion,
+            horaFinalizacion,
+            estadoNuevo,
+            id_profesional,
+            id_reserva
+        );
+
+        if (actualizado) {
+            setEstadoReserva(estadoNuevo);
+            await seleccionarReservaEspecifica(id_reserva);
+        }
     }
 
     function iniciarDragPopup(event) {
@@ -1305,6 +1473,29 @@ function CalendarioContent() {
                                 <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Acciones</h3>
                                 <p className="mt-0.5 text-xs text-slate-500">Crear, editar, limpiar o eliminar la reserva activa.</p>
                             </div>
+                            <div className="mb-4 flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoRapido("asiste")}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200/80 border-l-[4px] border-l-cyan-500 bg-cyan-50/80 px-4 py-2.5 text-sm font-semibold text-cyan-800 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] transition-all duration-150 hover:bg-cyan-100"
+                                >
+                                    Asiste
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoRapido("no asiste")}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-pink-200/80 border-l-[4px] border-l-pink-500 bg-pink-50/80 px-4 py-2.5 text-sm font-semibold text-pink-800 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] transition-all duration-150 hover:bg-pink-100"
+                                >
+                                    No asiste
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoRapido("finalizado")}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-orange-200/80 border-l-[4px] border-l-orange-500 bg-orange-50/80 px-4 py-2.5 text-sm font-semibold text-orange-800 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] transition-all duration-150 hover:bg-orange-100"
+                                >
+                                    Finalizado
+                                </button>
+                            </div>
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={ingresarPacienteDesdeAgenda}
@@ -1382,6 +1573,18 @@ function CalendarioContent() {
                                 <span className="text-xs text-slate-500">Anulada</span>
                             </div>
                             <div className="flex items-center gap-1.5">
+                                <span className="inline-block w-3 h-3 rounded bg-cyan-500"></span>
+                                <span className="text-xs text-slate-500">Asiste</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-block w-3 h-3 rounded bg-pink-500"></span>
+                                <span className="text-xs text-slate-500">No asiste</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="inline-block w-3 h-3 rounded bg-orange-500"></span>
+                                <span className="text-xs text-slate-500">Finalizado</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
                                 <span className="inline-block h-3 w-3 rounded border border-slate-500/60 bg-slate-500/50"></span>
                                 <span className="text-xs text-slate-500">Bloqueado</span>
                             </div>
@@ -1430,8 +1633,11 @@ function CalendarioContent() {
                             selectable
                             resizable
                             popup
-                            step={30}
-                            timeslots={2}
+                            min={crearHoraLimite(HORA_MINIMA_AGENDA)}
+                            max={crearHoraLimite(HORA_MAXIMA_AGENDA)}
+                            scrollToTime={crearHoraLimite(HORA_MINIMA_AGENDA)}
+                            step={15}
+                            timeslots={1}
                             draggableAccessor={(event) => event.tipo === "reserva"}
                             resizableAccessor={(event) => event.tipo === "reserva"}
                             longPressThreshold={esMobile ? 300 : 10}
@@ -1513,10 +1719,24 @@ function CalendarioContent() {
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                                     <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Inicio</div>
                                     <div className="mt-1 font-semibold text-violet-700">{formatHoraCorta(selectionDraft.start)}</div>
+                                    <input
+                                        type="time"
+                                        step="900"
+                                        value={format(selectionDraft.start, "HH:mm")}
+                                        onChange={(e) => actualizarHoraSeleccionDraft("start", e.target.value)}
+                                        className="mt-2 h-9 w-full rounded-xl border border-violet-200 bg-white px-3 text-[12px] font-medium text-slate-800 outline-none transition-all focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                                    />
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                                     <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Termino</div>
                                     <div className="mt-1 font-semibold text-violet-700">{formatHoraCorta(selectionDraft.end)}</div>
+                                    <input
+                                        type="time"
+                                        step="900"
+                                        value={format(selectionDraft.end, "HH:mm")}
+                                        onChange={(e) => actualizarHoraSeleccionDraft("end", e.target.value)}
+                                        className="mt-2 h-9 w-full rounded-xl border border-violet-200 bg-white px-3 text-[12px] font-medium text-slate-800 outline-none transition-all focus:border-violet-300 focus:ring-4 focus:ring-violet-100"
+                                    />
                                 </div>
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                                     <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Fecha</div>
