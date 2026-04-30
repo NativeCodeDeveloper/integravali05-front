@@ -249,35 +249,35 @@ export default function FormularioReservaProfesional() {
     }
 
     return (
-        <div className="min-h-screen bg-white px-4 py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#f5f7f6] px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl">
 
                 {/* Header */}
                 <header className="animate-reveal-up mb-10 text-center">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-medium tracking-wide text-slate-500 shadow-sm">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[#C1D9D3] bg-white px-4 py-1.5 text-xs font-medium tracking-wide text-[#5F8580] shadow-sm">
                         Reserva Online
                     </div>
-                    <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                    <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#1F4A4A] sm:text-4xl">
                         {profesionalSeleccionado || "Cargando..."}
                     </h1>
-                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-500">
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#507070]">
                         {descripcionProfesional}
                     </p>
-                    <div className="mx-auto mt-4 h-px w-20 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent"></div>
+                    <div className="mx-auto mt-4 h-px w-20 bg-gradient-to-r from-transparent via-[#5AACA8]/50 to-transparent"></div>
                 </header>
 
                 <form
-                    className="animate-reveal-up-delay space-y-8 rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-lg shadow-slate-900/5 backdrop-blur sm:p-8"
+                    className="animate-reveal-up-delay space-y-8 rounded-2xl border border-[#C1D9D3] bg-white/90 p-6 shadow-lg shadow-[#2D5E5E]/5 backdrop-blur sm:p-8"
                     onSubmit={(e) => {
                         e.preventDefault();
                     }}
                 >
                     {/* Servicio */}
                     <div>
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Servicio</h2>
-                        <div className="mt-1 h-px w-full bg-gradient-to-r from-slate-200 via-slate-100 to-transparent"></div>
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6A8E88]">Servicio</h2>
+                        <div className="mt-1 h-px w-full bg-gradient-to-r from-[#C1D9D3] via-[#D5EDE9] to-transparent"></div>
                         <div className="mt-4">
-                            <label className="mb-1.5 block text-xs font-semibold text-slate-700">Motivo de consulta</label>
+                            <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">Motivo de consulta</label>
                             <SelectDinamic
                                 value={tarifaSeleccionadaIndex}
                                 onChange={(e) => {
@@ -294,18 +294,18 @@ export default function FormularioReservaProfesional() {
                                     value: index,
                                     label: `${tarifa.nombreServicio} - ${formatoCLP.format(tarifa.precio)}`
                                 }))}
-                                className={tarifaSeleccionadaIndex !== "" ? "border-emerald-400 bg-emerald-50/50 font-medium text-slate-900" : ""}
+                                className={tarifaSeleccionadaIndex !== "" ? "border-[#5AACA8] bg-[#EFF7F6] font-medium text-[#1F4A4A]" : ""}
                             />
                         </div>
                     </div>
 
                     {/* Datos personales */}
                     <div>
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Datos personales</h2>
-                        <div className="mt-1 h-px w-full bg-gradient-to-r from-slate-200 via-slate-100 to-transparent"></div>
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6A8E88]">Datos personales</h2>
+                        <div className="mt-1 h-px w-full bg-gradient-to-r from-[#C1D9D3] via-[#D5EDE9] to-transparent"></div>
                         <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Nombre</label>
+                                <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">Nombre</label>
                                 <ShadcnInput
                                     value={nombrePaciente}
                                     onChange={(e) => setNombrePaciente(e.target.value)}
@@ -314,7 +314,7 @@ export default function FormularioReservaProfesional() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Apellido</label>
+                                <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">Apellido</label>
                                 <ShadcnInput
                                     value={apellidoPaciente}
                                     onChange={(e) => setApellidoPaciente(e.target.value)}
@@ -323,7 +323,7 @@ export default function FormularioReservaProfesional() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">RUT</label>
+                                <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">RUT</label>
                                 <ShadcnInput
                                     value={rut}
                                     onChange={(e) => {
@@ -335,7 +335,7 @@ export default function FormularioReservaProfesional() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Correo electrónico</label>
+                                <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">Correo electrónico</label>
                                 <ShadcnInput
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -344,7 +344,7 @@ export default function FormularioReservaProfesional() {
                                 />
                             </div>
                             <div className="sm:col-span-2">
-                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Teléfono</label>
+                                <label className="mb-1.5 block text-xs font-semibold text-[#2D5E5E]">Teléfono</label>
                                 <ShadcnInput
                                     value={telefono}
                                     onChange={(e) => setTelefono(e.target.value)}
@@ -358,34 +358,34 @@ export default function FormularioReservaProfesional() {
                     {/* Resumen */}
                     {(fechaInicio || horaInicio || totalPago) && (
                         <div>
-                            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Resumen de tu cita</h2>
-                            <div className="mt-1 h-px w-full bg-gradient-to-r from-slate-200 via-slate-100 to-transparent"></div>
-                            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6A8E88]">Resumen de tu cita</h2>
+                            <div className="mt-1 h-px w-full bg-gradient-to-r from-[#C1D9D3] via-[#D5EDE9] to-transparent"></div>
+                            <div className="mt-4 rounded-xl border border-[#D5EDE9] bg-[#F2F8F6] p-4">
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     {fechaInicio && (
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs text-white">D</div>
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#3D7B7B] text-xs text-white">D</div>
                                             <div>
-                                                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Fecha</p>
-                                                <p className="text-sm font-semibold text-slate-800">{fechaInicio.toString()}</p>
+                                                <p className="text-[11px] font-medium uppercase tracking-wider text-[#6A8E88]">Fecha</p>
+                                                <p className="text-sm font-semibold text-[#1F4A4A]">{fechaInicio.toString()}</p>
                                             </div>
                                         </div>
                                     )}
                                     {horaInicio && (
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs text-white">H</div>
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#3D7B7B] text-xs text-white">H</div>
                                             <div>
-                                                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Horario</p>
-                                                <p className="text-sm font-semibold text-slate-800">{horaInicio.toString()} – {horaFin.toString()}</p>
+                                                <p className="text-[11px] font-medium uppercase tracking-wider text-[#6A8E88]">Horario</p>
+                                                <p className="text-sm font-semibold text-[#1F4A4A]">{horaInicio.toString()} – {horaFin.toString()}</p>
                                             </div>
                                         </div>
                                     )}
                                     {totalPago && (
                                         <div className="flex items-center gap-3 sm:col-span-2">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">$</div>
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#5AACA8] text-xs font-bold text-white">$</div>
                                             <div>
-                                                <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Valor consulta</p>
-                                                <p className="text-sm font-bold text-emerald-700">{formatoCLP.format(totalPago)}</p>
+                                                <p className="text-[11px] font-medium uppercase tracking-wider text-[#6A8E88]">Valor consulta</p>
+                                                <p className="text-sm font-bold text-[#3D7B7B]">{formatoCLP.format(totalPago)}</p>
                                             </div>
                                         </div>
                                     )}
@@ -395,7 +395,7 @@ export default function FormularioReservaProfesional() {
                     )}
 
                     {/* Acciones */}
-                    <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
+                    <div className="flex flex-col-reverse gap-3 border-t border-[#D5EDE9] pt-6 sm:flex-row sm:justify-end">
 
                             <ShadcnButton2 nombre={"RETROCEDER"} funcion={()=>volver(id_profesional)}/>
 
@@ -427,7 +427,7 @@ export default function FormularioReservaProfesional() {
                     </div>
                 </form>
 
-                <p className="mt-6 text-center text-xs text-slate-400">
+                <p className="mt-6 text-center text-xs text-[#6A8E88]">
                     Revisa que los datos sean correctos antes de confirmar tu reserva.
                 </p>
 

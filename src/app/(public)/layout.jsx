@@ -9,9 +9,9 @@ export default function PublicLayout({ children }) {
   return (
     <CarritoProvider>
       <ObjetoPagarProvider>
-        <div className="theme-white relative min-h-screen bg-white text-slate-900">
+        <div className="theme-white relative min-h-screen bg-[#f5f7f6] text-slate-900">
           <ToasterClient />
-          <main className="relative z-10 pt-24 md:pt-20">{children}</main>
+          <main className="relative z-10">{children}</main>
         </div>
       </ObjetoPagarProvider>
     </CarritoProvider>

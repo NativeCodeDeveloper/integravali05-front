@@ -52,23 +52,23 @@ html {
 :root {
   --radius: 0.625rem;
   --background: #ffffff;
-  --foreground: #0f5a52;
+  --foreground: #2D5E5E;
   --card: #ffffff;
-  --card-foreground: #0f5a52;
+  --card-foreground: #2D5E5E;
   --popover: #ffffff;
-  --popover-foreground: #0f5a52;
-  --primary: #34cdb4;
+  --popover-foreground: #2D5E5E;
+  --primary: #5AACA8;
   --primary-foreground: #ffffff;
-  --secondary: #ecfbf7;
-  --secondary-foreground: #0f5a52;
-  --muted: #f3fffc;
-  --muted-foreground: #2b7268;
-  --accent: #d7f6ef;
-  --accent-foreground: #0f5a52;
+  --secondary: #EDF5F3;
+  --secondary-foreground: #2D5E5E;
+  --muted: #F2F8F6;
+  --muted-foreground: #4D7B82;
+  --accent: #D0EDE8;
+  --accent-foreground: #2D5E5E;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #c7ebe3;
-  --input: #c7ebe3;
-  --ring: #34cdb4;
+  --border: #C1D9D3;
+  --input: #C1D9D3;
+  --ring: #5AACA8;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -161,14 +161,14 @@ html {
 }
 
 .theme-white {
-  --brand-50: #ecfbf7;
-  --brand-100: #d8f6ef;
-  --brand-200: #bfeee3;
-  --brand-500: #34cdb4;
-  --brand-600: #2ab9a2;
-  --brand-700: #1f8f7d;
-  --brand-ink: #0f5a52;
-  background: #ffffff;
+  --brand-50: #EDF5F3;
+  --brand-100: #D5EDE9;
+  --brand-200: #B5DDD5;
+  --brand-500: #5AACA8;
+  --brand-600: #4A9A96;
+  --brand-700: #3D8580;
+  --brand-ink: #2D5E5E;
+  background: #f5f7f6;
   color: var(--brand-ink);
 }
 
