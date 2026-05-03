@@ -1,7 +1,6 @@
 
-
-
 /*
+
 // frontend/src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -20,10 +19,14 @@ matcher: ['/dashboard/:path*'], // o simplemente [] si quieres que no aplique a 
 */
 
 
+
+
+
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 const isDashboard = createRouteMatcher(['/dashboard(.*)'])
+const isSignIn = createRouteMatcher(['/sign-in(.*)'])
 
 // Rutas permitidas para recepcionista: inicio + módulo calendario completo
 const isRecepcionistaAllowed = createRouteMatcher([
@@ -39,14 +42,17 @@ const isRecepcionistaAllowed = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isDashboard(req)) return NextResponse.next()
-
   const { userId, sessionClaims } = await auth()
 
-  // No autenticado → sign-in
-  // if (!userId) {
-   //  return NextResponse.redirect(new URL('/sign-in', req.url))
- // }
+  if (isSignIn(req) && userId) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
+  if (!isDashboard(req)) return NextResponse.next()
+
+  if (!userId) {
+    return NextResponse.redirect(new URL('/sign-in', req.url))
+  }
 
   // Leer rol desde publicMetadata (configurado en Clerk Dashboard)
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
@@ -60,7 +66,7 @@ export default clerkMiddleware(async (auth, req) => {
 })
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ['/dashboard/:path*', '/sign-in/:path*'],
 }
 
 

@@ -24,7 +24,7 @@ export default function GestionPaciente() {
     const [rut, setRut] = useState("");
     const [nacimiento, setNacimiento] = useState("");
     const [sexo, setSexo] = useState("");
-    const [prevision, setPrevision] = useState("NO APLICA");
+    const [prevision, setPrevision] = useState("FONASA");
     const [telefono, setTelefono] = useState("");
     const [correo, setCorreo] = useState("");
     const [direccion, setDireccion] = useState("");
@@ -121,12 +121,16 @@ export default function GestionPaciente() {
         try {
             let prevision_id = null;
 
-            if (prevision.includes("NO APLICA")) {
+            if (prevision.includes("FONASA")) {
                 prevision_id = 1;
             } else if (prevision.includes("ISAPRE")) {
                 prevision_id = 2;
+            } else if (prevision.includes("CONVENIO")) {
+                prevision_id = 3;
+            } else if (prevision.includes("SIN PREVISION")) {
+                prevision_id = 4;
             } else {
-                return toast.error("Debe seleccionar al menos una prevision")
+                return toast.error("Debe seleccionar al menos una previsión");
             }
 
             if (!nombre || !apellido || !rut || !nacimiento || !sexo || !prevision_id || !telefono || !correo || !direccion || !pais) {
@@ -247,25 +251,27 @@ export default function GestionPaciente() {
                         <div className="p-5 md:p-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={nombre}
                                         placeholder={"Ej: Andrea Ignacia"}
                                         onChange={(e) => setNombre(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Apellido</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Apellido <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={apellido}
                                         placeholder={"Ej: Varela Garrido"}
                                         onChange={(e) => setApellido(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Número Identificación (RUT)</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Número Identificación (RUT) <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={rut}
                                         onChange={(e) => {
@@ -275,72 +281,82 @@ export default function GestionPaciente() {
                                         placeholder="12345678K (Sin puntos ni guion)"
                                         className="w-full"
                                     />
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Sexo</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Sexo <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={sexo}
                                         placeholder={"Ej: Femenino"}
                                         onChange={(e) => setSexo(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Previsión</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Previsión <span className="text-red-500">*</span></label>
                                     <div className="w-full [&_button]:w-full [&_button]:h-10 [&_button]:justify-between [&_button]:rounded-md [&_button]:border-slate-200 [&_button]:bg-white [&_button]:px-3 [&_button]:text-sm [&_button]:text-slate-700 [&_button]:shadow-none">
                                         <ShadcnSelect
-                                            nombreDefault={"Seleccion Prevision"}
-                                            value1={"NO APLICA"}
+                                            nombreDefault={"Seleccione Previsión"}
+                                            value1={"FONASA"}
                                             value2={"ISAPRE"}
+                                            value3={"CONVENIO"}
+                                            value4={"SIN PREVISION"}
                                             onChange={(value) => setPrevision(value)}
                                         />
                                     </div>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Teléfono <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={telefono}
                                         placeholder={"Ej: +569 99764369"}
                                         onChange={(e) => setTelefono(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Correo <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={correo}
                                         placeholder={"CorreoDelPaciente@gmail.com"}
                                         onChange={(e) => setCorreo(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Dirección <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         placeholder={"Avenida España 123 / Concepcion"}
                                         value={direccion}
                                         onChange={(e) => setDireccion(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">País</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">País <span className="text-red-500">*</span></label>
                                     <ShadcnInput
                                         value={pais}
                                         placeholder={"Ej: Argentina"}
                                         onChange={(e) => setPais(e.target.value)}
                                         className="w-full"/>
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha de Nacimiento</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha de Nacimiento <span className="text-red-500">*</span></label>
                                     <ShadcnDatePicker
                                         label=""
                                         value={nacimiento}
                                         onChange={(fecha) => setNacimiento(fecha)}
                                     />
+                                    <p className="mt-1 text-[11px] text-slate-400">Campo obligatorio</p>
                                 </div>
 
                                 <div className="sm:col-span-2 xl:col-span-3 pt-2">

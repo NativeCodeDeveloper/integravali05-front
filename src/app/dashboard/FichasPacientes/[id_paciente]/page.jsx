@@ -233,11 +233,15 @@ export default function Paciente() {
         let prevision_id = null;
 
         if (prevision.includes("FONASA")) {
-            prevision_id = 1
+            prevision_id = 1;
         } else if (prevision.includes("ISAPRE")) {
-            prevision_id = 2
+            prevision_id = 2;
+        } else if (prevision.includes("CONVENIO")) {
+            prevision_id = 3;
+        } else if (prevision.includes("SIN PREVISION")) {
+            prevision_id = 4;
         } else {
-            prevision_id = 0
+            prevision_id = 0;
         }
 
         try {
@@ -339,8 +343,10 @@ export default function Paciente() {
     }
 
     function previsionDeterminacion(id_prevision) {
-        if (id_prevision === 1) return "NO APLICA";
+        if (id_prevision === 1) return "FONASA";
         if (id_prevision === 2) return "ISAPRE";
+        if (id_prevision === 3) return "CONVENIO";
+        if (id_prevision === 4) return "SIN PREVISION";
         return "SIN DEFINIR";
     }
 

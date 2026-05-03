@@ -1,6 +1,7 @@
 "use client"
 
-import {useState, useMemo, useEffect} from "react";
+import {useState, useMemo, useEffect, useRef} from "react";
+import {useRouter} from "next/navigation";
 import {Calendar, dateFnsLocalizer} from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import format from "date-fns/format";
@@ -41,6 +42,11 @@ function crearHoraLimite(hora, minuto = 0, segundo = 0) {
 export default function Calendario() {
 
     const API = process.env.NEXT_PUBLIC_API_URL;
+    const router = useRouter();
+    const popupRef = useRef(null);
+    const popupDragRef = useRef({dragging: false, offsetX: 0, offsetY: 0});
+    const [reservaPopup, setReservaPopup] = useState(null);
+    const [draggingPopup, setDraggingPopup] = useState(false);
 
     useEffect(() => {
         const style = document.createElement('style');
@@ -141,18 +147,18 @@ export default function Calendario() {
             .rbc-month-view .rbc-event {
                 min-height: 0 !important; height: auto !important; padding: 2px 3px !important;
                 line-height: 1.1 !important; white-space: normal !important; overflow: visible !important; word-break: break-word !important;
-                font-size: 40% !important;
+                font-size: 60% !important;
             }
             .rbc-time-view .rbc-event {
                 min-height: 0 !important; padding: 1px 2px !important;
                 line-height: 1.1 !important; white-space: normal !important; overflow: hidden !important; word-break: break-word !important;
-                font-size: 48% !important;
+                font-size: 72% !important;
             }
             .rbc-month-view .rbc-day-slot { min-height: 80px !important; }
             .rbc-row-segment { z-index: 1 !important; }
-            .rbc-event-label, .rbc-event-content { white-space: normal !important; overflow: visible !important; word-break: break-word !important; font-size: 40% !important; }
+            .rbc-event-label, .rbc-event-content { white-space: normal !important; overflow: visible !important; word-break: break-word !important; font-size: 60% !important; }
             .rbc-time-view .rbc-event-label,
-            .rbc-time-view .rbc-event-content { font-size: 48% !important; }
+            .rbc-time-view .rbc-event-content { font-size: 72% !important; }
             .rbc-event-label { display: none !important; }
             @media (max-width: 767px) {
                 .rbc-time-view,
@@ -177,6 +183,7 @@ export default function Calendario() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [currentView, setCurrentView] = useState("month");
     const [esMobile, setEsMobile] = useState(false);
+    const [clienteMontado, setClienteMontado] = useState(false);
 
 
     const [nombrePaciente, setNombrePaciente] = useState("");
@@ -196,6 +203,10 @@ export default function Calendario() {
     const [backgroundCalendarEvents, setBackgroundCalendarEvents] = useState([]);
     const [listaProfesionales, setListaProfesionales] = useState([]);
     const [id_profesional, setId_profesional] = useState("");
+
+    useEffect(() => {
+        setClienteMontado(true);
+    }, []);
 
     useEffect(() => {
         function actualizarModoMobile() {
@@ -640,7 +651,7 @@ export default function Calendario() {
                     textOverflow: 'clip',
                     lineHeight: esVistaMes ? '1' : '1.3',
                     padding: esVistaMes ? '2px 4px' : '6px 8px',
-                    fontSize: esVistaMes ? '0.45rem' : '0.32rem',
+                    fontSize: esVistaMes ? '0.9rem' : '0.8rem',
                     boxSizing: 'border-box',
                     borderRadius: '0px',
                     backgroundColor: 'rgba(107, 114, 128, 0.28)',
@@ -666,7 +677,7 @@ export default function Calendario() {
                 textOverflow: 'ellipsis',
                 lineHeight: '1',
                 padding: esVistaMes ? '2px 4px' : '0',
-                fontSize: esVistaMes ? '0.45rem' : '0.32rem',
+                fontSize: esVistaMes ? '0.95rem' : '0.85rem',
                 boxSizing: 'border-box',
                 borderRadius: '0px',
                 backgroundColor: paletteReserva.backgroundColor,
@@ -701,7 +712,7 @@ export default function Calendario() {
     const EventComponent = ({event}) => (
         <div
             title={obtenerTooltipEvento(event)}
-            className="truncate text-[6px] leading-none w-full h-full flex items-center gap-1 px-[2px]"
+            className="truncate text-sm md:text-base leading-tight font-semibold w-full h-full flex items-center gap-1 px-1"
             style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}
         >
             {event.tipo === "bloqueo" && (
@@ -714,7 +725,7 @@ export default function Calendario() {
     );
 
     const TitleOnlyEvent = ({event}) => (
-        <div title={obtenerTooltipEvento(event)} className="truncate text-[6px] leading-none font-medium w-full flex items-center gap-1" style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+        <div title={obtenerTooltipEvento(event)} className="truncate text-sm md:text-base leading-tight font-semibold w-full flex items-center gap-1 px-1" style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
             {event.tipo === "bloqueo" && (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -727,9 +738,10 @@ export default function Calendario() {
 
     async function actualizarInformacionReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva) {
         try {
+            const correoNormalizado = (email ?? "").trim() || null;
 
-            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !email || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional || !id_reserva) {
-                toast.error("Debe llenar todos los campos para poder actualizar la reserva");
+            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFinalizacion || !estadoReserva || !id_profesional || !id_reserva) {
+                toast.error("Debe completar los datos requeridos para actualizar la reserva");
                 return false;
             }
 
@@ -742,7 +754,7 @@ export default function Calendario() {
                     apellidoPaciente,
                     rut,
                     telefono,
-                    email,
+                    email: correoNormalizado,
                     fechaInicio,
                     horaInicio,
                     fechaFinalizacion,
@@ -877,6 +889,145 @@ export default function Calendario() {
         }
     }
 
+    function normalizarRut(valor = "") {
+        return String(valor).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    }
+
+    async function buscarPacienteYNavegar(rutReserva) {
+        if (!rutReserva) {
+            return toast.error("La reserva no tiene RUT asociado.");
+        }
+        try {
+            const rutNormalizado = normalizarRut(rutReserva);
+            const res = await fetch(`${API}/pacientes/contieneRut`, {
+                method: "POST",
+                headers: {Accept: "application/json", "Content-Type": "application/json"},
+                mode: "cors",
+                body: JSON.stringify({rut: rutNormalizado})
+            });
+            if (!res.ok) {
+                return toast.error("No se pudo conectar al servidor para buscar el paciente.");
+            }
+            const coincidencias = await res.json();
+            const paciente = Array.isArray(coincidencias)
+                ? coincidencias.find(
+                    (p) => normalizarRut(p.rut) === rutNormalizado && Number(p.estado_paciente) !== 0
+                )
+                : null;
+
+            if (paciente && paciente.id_paciente) {
+                router.push(`/dashboard/FichasPacientes/${paciente.id_paciente}`);
+            } else {
+                toast.error("El paciente no se encuentra ingresado en la lista de pacientes.");
+            }
+        } catch (error) {
+            console.log(error);
+            toast.error("Error al buscar el paciente.");
+        }
+    }
+
+    async function cambiarEstadoDesdePopup(estadoNuevo) {
+        if (!reservaPopup?.reserva) return;
+        const r = reservaPopup.reserva;
+        const actualizado = await actualizarInformacionReserva(
+            r.nombrePaciente,
+            r.apellidoPaciente,
+            r.rut,
+            r.telefono,
+            r.email,
+            (r.fechaInicio ?? "").slice(0, 10),
+            r.horaInicio,
+            (r.fechaFinalizacion ?? "").slice(0, 10),
+            r.horaFinalizacion,
+            estadoNuevo,
+            r.id_profesional,
+            r.id_reserva
+        );
+        if (actualizado) {
+            setReservaPopup(null);
+        }
+    }
+
+    function iniciarDragPopup(event) {
+        if (!popupRef.current) return;
+        const rect = popupRef.current.getBoundingClientRect();
+        const point = "touches" in event ? event.touches[0] : event;
+        if (!point) return;
+        popupDragRef.current = {
+            dragging: true,
+            offsetX: point.clientX - rect.left,
+            offsetY: point.clientY - rect.top,
+        };
+        setDraggingPopup(true);
+        document.body.style.userSelect = "none";
+        document.body.style.touchAction = "none";
+    }
+
+    useEffect(() => {
+        if (!draggingPopup) return;
+
+        function actualizarPosicion(clientX, clientY) {
+            const popupWidth = popupRef.current?.offsetWidth ?? 380;
+            const popupHeight = popupRef.current?.offsetHeight ?? 400;
+            const nextX = clientX - popupDragRef.current.offsetX;
+            const nextY = clientY - popupDragRef.current.offsetY;
+
+            setReservaPopup((prev) => prev ? {
+                ...prev,
+                position: {
+                    x: Math.max(8, Math.min(nextX, window.innerWidth - popupWidth - 8)),
+                    y: Math.max(8, Math.min(nextY, window.innerHeight - popupHeight - 8)),
+                },
+            } : prev);
+        }
+
+        function handleMove(event) {
+            if (!popupDragRef.current.dragging) return;
+            actualizarPosicion(event.clientX, event.clientY);
+        }
+
+        function handleTouchMove(event) {
+            if (!popupDragRef.current.dragging) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            event.preventDefault();
+            actualizarPosicion(touch.clientX, touch.clientY);
+        }
+
+        function handleUp() {
+            popupDragRef.current.dragging = false;
+            setDraggingPopup(false);
+            document.body.style.userSelect = "";
+            document.body.style.touchAction = "";
+        }
+
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleUp);
+        window.addEventListener("touchmove", handleTouchMove, {passive: false});
+        window.addEventListener("touchend", handleUp);
+
+        return () => {
+            window.removeEventListener("mousemove", handleMove);
+            window.removeEventListener("mouseup", handleUp);
+            window.removeEventListener("touchmove", handleTouchMove);
+            window.removeEventListener("touchend", handleUp);
+        };
+    }, [draggingPopup]);
+
+    function formatFechaLarga(date) {
+        return format(date, "EEEE d 'de' MMMM", {locale: es});
+    }
+
+    if (!clienteMontado) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50/30">
+                <ToasterClient/>
+                <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-4">
+                    <div className="text-sm text-slate-400">Cargando calendario...</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50/30">
@@ -1038,6 +1189,7 @@ export default function Calendario() {
                                 return true;
                             }}
                             onSelectEvent={(event) => {
+                                setReservaPopup(null);
                                 if (event.tipo === "bloqueo") {
                                     return toast("Bloqueo: " + (event.title || "Sin motivo"), {icon: "🔒"});
                                 }
@@ -1046,8 +1198,14 @@ export default function Calendario() {
                                     return;
                                 }
                                 setid_reserva(event.id_reserva);
-                                seleccionarReservaEspecifica(event.id_reserva);
-                                toast.success(`Reserva: Numero # ${event.id_reserva}`);
+                                seleccionarReservaEspecifica(event.id_reserva).then(() => {
+                                    const reserva = event.resource;
+                                    if (!reserva) return;
+                                    setReservaPopup({
+                                        reserva,
+                                        position: null,
+                                    });
+                                });
                             }}
                             onSelectSlot={(slotInfo) => {
                                 const start = slotInfo.start ?? slotInfo;
@@ -1065,6 +1223,155 @@ export default function Calendario() {
                     </div>
                 </div>
             </div>
+
+            {reservaPopup && (() => {
+                const r = reservaPopup.reserva;
+                const paleta = obtenerPaletaEstadoReserva(r.estadoReserva);
+                const fechaIni = (r.fechaInicio ?? "").slice(0, 10);
+                const start = convertirAFechaCalendario(fechaIni, r.horaInicio ?? "00:00:00");
+                const end = convertirAFechaCalendario((r.fechaFinalizacion ?? "").slice(0, 10), r.horaFinalizacion ?? "00:00:00");
+                return (
+                    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-transparent p-4" onMouseDown={(e) => e.preventDefault()}>
+                        <div
+                            ref={popupRef}
+                            className={`w-[calc(100vw-32px)] max-w-[380px] rounded-[24px] border border-slate-200 bg-white/98 shadow-[0_28px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl ${reservaPopup.position ? "fixed" : "relative"}`}
+                            style={reservaPopup.position ? {left: reservaPopup.position.x, top: reservaPopup.position.y} : undefined}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                        >
+                            {/* Header draggable */}
+                            <div
+                                className="flex cursor-move touch-none items-center justify-between rounded-t-[24px] border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100/80 px-4 py-3"
+                                onMouseDown={iniciarDragPopup}
+                                onTouchStart={iniciarDragPopup}
+                            >
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Reserva #{r.id_reserva}</p>
+                                    <p className="mt-1 truncate text-base font-bold text-slate-800">
+                                        {(r.nombrePaciente ?? "").trim()} {(r.apellidoPaciente ?? "").trim()}
+                                    </p>
+                                </div>
+                                <div className="ml-3 flex items-center gap-2">
+                                    <span
+                                        className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                                        style={{backgroundColor: paleta.backgroundColor, color: paleta.color, border: `1px solid ${paleta.borderColor}`}}
+                                    >
+                                        {r.estadoReserva || "reservada"}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReservaPopup(null)}
+                                        className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="space-y-2 px-4 py-3">
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Fecha</div>
+                                        <div className="mt-0.5 text-xs font-semibold capitalize text-slate-700">{formatFechaLarga(start)}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Inicio</div>
+                                        <div className="mt-0.5 text-xs font-semibold text-violet-700">{formatHoraCorta(start)}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Termino</div>
+                                        <div className="mt-0.5 text-xs font-semibold text-violet-700">{formatHoraCorta(end)}</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">RUT</div>
+                                        <div className="mt-0.5 text-xs font-semibold text-slate-700">{r.rut || "—"}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Telefono</div>
+                                        <div className="mt-0.5 text-xs font-semibold text-slate-700">{r.telefono || "—"}</div>
+                                    </div>
+                                </div>
+
+                                {r.email && (
+                                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2">
+                                        <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Correo</div>
+                                        <div className="mt-0.5 truncate text-xs font-semibold text-slate-700">{r.email}</div>
+                                    </div>
+                                )}
+
+                                {/* Estado buttons */}
+                                <div>
+                                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Cambiar estado</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => cambiarEstadoDesdePopup("asiste")}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-cyan-200/80 border-l-[3px] border-l-cyan-500 bg-cyan-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-800 transition-all hover:bg-cyan-100"
+                                        >
+                                            Asiste
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => cambiarEstadoDesdePopup("no asiste")}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-pink-200/80 border-l-[3px] border-l-pink-500 bg-pink-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-pink-800 transition-all hover:bg-pink-100"
+                                        >
+                                            No asiste
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => cambiarEstadoDesdePopup("finalizado")}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-orange-200/80 border-l-[3px] border-l-orange-500 bg-orange-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-orange-800 transition-all hover:bg-orange-100"
+                                        >
+                                            Finalizado
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => cambiarEstadoDesdePopup("confirmada")}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-green-200/80 border-l-[3px] border-l-green-500 bg-green-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-green-800 transition-all hover:bg-green-100"
+                                        >
+                                            Confirmada
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => cambiarEstadoDesdePopup("anulada")}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200/80 border-l-[3px] border-l-rose-500 bg-rose-50/80 px-2.5 py-1.5 text-[11px] font-semibold text-rose-800 transition-all hover:bg-rose-100"
+                                        >
+                                            Anulada
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3">
+                                <button
+                                    type="button"
+                                    onClick={() => buscarPacienteYNavegar(r.rut)}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 px-3 py-2 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(14,165,233,0.16)] transition-all hover:from-cyan-600 hover:to-sky-700"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Ver Ficha Clinica
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setReservaPopup(null)}
+                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

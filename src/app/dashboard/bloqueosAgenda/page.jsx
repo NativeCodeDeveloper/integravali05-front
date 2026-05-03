@@ -111,7 +111,7 @@ const [id_profesional, setId_profesional] = useState("");
         })
 
             if (!res.ok) {
-                return toast.error("No se ha podido insertar bloqueo al sistema. Intente mas tarde.")
+                return toast.error("Verifique que no haya una hora o bloqueo previo.")
             }else{
 
                 const respuestaBackend = await res.json();
@@ -125,13 +125,13 @@ const [id_profesional, setId_profesional] = useState("");
                     await verTodosLosBloqueos();
                     return toast.success('Se ha ingresado con exito el bloqueo al sistema. ')
                 }else {
-                    return toast.error("No se ha podido insertar bloqueo al sistema. Intente mas tarde.")
+                    return toast.error("Verifique que no haya una hora o bloqueo previo.")
                 }
 
             }
 
         }catch (error) {
-            return toast.error("No se ha podido insertar el bloqueo de horario. Contacte a soporte TI de nativecode ")
+            return toast.error("Verifique que no haya una hora o bloqueo previo.")
         }
     }
 
@@ -181,7 +181,7 @@ const [id_profesional, setId_profesional] = useState("");
                     await verTodosLosBloqueos();
                     return toast.success('Se ha eliminado con exito el bloqueo del sistema. ')
                 }else {
-                    return toast.error("No se ha podido insertar bloqueo al sistema. Intente mas tarde.")
+                    return toast.error("Verifique que no haya una hora o bloqueo previo.")
                 }
             }
         }catch (error) {
@@ -458,7 +458,7 @@ const [id_profesional, setId_profesional] = useState("");
                                         <span className="flex items-center justify-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             </svg>
-                                            Cargar Todos los Bloqueos
+                                            Ver listado de bloqueos
                                         </span>
                                     </button>
 

@@ -143,7 +143,7 @@ export default function FormularioReservaProfesional() {
                     horaInicio,
                     fechaFinalizacion,
                     horaFinalizacion,
-                    estadoReserva: "reservada",
+                    estadoReserva: "pendiente pago",
                     totalPago: Number(totalPago),
                     id_profesional
                 }),

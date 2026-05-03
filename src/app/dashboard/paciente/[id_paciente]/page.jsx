@@ -1,6 +1,6 @@
 "use client"
 import {useParams, useSearchParams} from "next/navigation";
-import {useState, useEffect} from "react";
+import {useState, useEffect, useRef} from "react";
 import {toast} from "react-hot-toast";
 import ToasterClient from "@/Componentes/ToasterClient";
 import formatearFecha from "@/FuncionesTranversales/funcionesTranversales.js"
@@ -25,6 +25,7 @@ export default function Paciente(){
     const API = process.env.NEXT_PUBLIC_API_URL;
     const router = useRouter();
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
+    const formularioRef = useRef(null);
 
     function volverAFichas() {
         router.push(`/dashboard/FichasPacientes/${id_paciente}`);
@@ -67,14 +68,16 @@ export default function Paciente(){
     //FUNCION PARA LA ACTUALIZACION DE DATOS DEL PACIENTE
     async function actualizarDatosPacientes(nombre,apellido,rut,nacimiento,sexo, prevision,telefono,correo,direccion,pais,observacion1,apoderado,apoderado_rut,medicamentosUsados,habitos,comentariosAdicionales,id_paciente ) {
 
-        let prevision_id = null;
+        let prevision_id = 0;
 
-        if (prevision.includes("NO APLICA")) {
-            prevision_id = 1
-        }else if (prevision.includes("ISAPRE")) {
-            prevision_id = 2
-        }else {
-            prevision_id = 0
+        if (prevision.includes("FONASA")) {
+            prevision_id = 1;
+        } else if (prevision.includes("ISAPRE")) {
+            prevision_id = 2;
+        } else if (prevision.includes("CONVENIO")) {
+            prevision_id = 3;
+        } else if (prevision.includes("SIN PREVISION")) {
+            prevision_id = 4;
         }
 
         try {
@@ -206,16 +209,11 @@ export default function Paciente(){
 
 
     function previsionDeterminacion(id_prevision){
-        let previsionString = null;
-
-        if(id_prevision === 1){
-            previsionString = "NO APLICA"
-        }else if(id_prevision === 2){
-            previsionString = "ISAPRE"
-        }else{
-            previsionString = "SIN DEFINIR"
-        }
-        return previsionString;
+        if(id_prevision === 1) return "FONASA";
+        if(id_prevision === 2) return "ISAPRE";
+        if(id_prevision === 3) return "CONVENIO";
+        if(id_prevision === 4) return "SIN PREVISION";
+        return "SIN DEFINIR";
     }
 
 
@@ -239,7 +237,9 @@ export default function Paciente(){
 
                 const resultadoBackend = await res.json();
                 if(resultadoBackend.message === true){
-                    return toast.success("Se ha eliminado correctamente el paciente de la base de datos")
+                    toast.success("Se ha eliminado correctamente el paciente de la base de datos");
+                    router.push("/dashboard/GestionPaciente");
+                    return;
                 }else{
                     return toast.error("No se ha podido elimnar al paciente de la base de datos, el mensaje que llega se contepla como false")
                 }
@@ -266,8 +266,6 @@ export default function Paciente(){
                             <p className="mt-1 text-sm text-slate-600">Información de contacto del Paciente </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs text-slate-500">Registros:</span>
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-sky-100 text-sky-900 font-semibold text-xs">{detallePaciente.length}</span>
                             {vieneDeFichas && (
                                 <button
                                     onClick={volverAFichas}
@@ -279,6 +277,31 @@ export default function Paciente(){
                                 </button>
                             )}
                             <ShadcnButton nombre={"Volver a Ingreso"} funcion={()=> volverAingreso()}/>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMostrarFormulario(true);
+                                    setTimeout(() => {
+                                        formularioRef.current?.scrollIntoView({behavior: "smooth", block: "start"});
+                                    }, 100);
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 transition-all duration-150 shadow-sm"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Editar datos
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => eliminarPaciente(id_paciente)}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-rose-600 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all duration-150 shadow-sm"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Eliminar Paciente
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -402,19 +425,30 @@ export default function Paciente(){
                     )}
                 </div>
 
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                    <ShadcnButton nombre={'Eliminar Paciente'} funcion={()=> eliminarPaciente(id_paciente)}/>
-                    <ShadcnButton nombre={mostrarFormulario ?  "Ocultar Formulario" : "Actualizar Datos" } funcion={()=> setMostrarFormulario((estadoBooleano) => !estadoBooleano)}/></div>
 
             </div>
 
             {/* FORMULARIO DE ACTUALIZACION */}
             {mostrarFormulario ? (
-                <div className="mt-6 max-w-5xl mx-auto overflow-hidden rounded-[28px] border border-sky-100 bg-white shadow-[0_20px_60px_-30px_rgba(14,116,144,0.28)] ring-1 ring-sky-100/60">
+                <div ref={formularioRef} className="mt-6 max-w-5xl mx-auto overflow-hidden rounded-[28px] border border-sky-100 bg-white shadow-[0_20px_60px_-30px_rgba(14,116,144,0.28)] ring-1 ring-sky-100/60">
                     <div className="border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-cyan-50 px-5 py-4 sm:px-6">
-                        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-600">Edición</p>
-                        <h2 className="mt-1 text-lg font-semibold text-slate-900">Actualizar Datos del Paciente</h2>
-                        <p className="mt-1 text-sm text-slate-500">Ajusta los datos demográficos y clínicos manteniendo la misma línea visual de la ficha.</p>
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-600">Edición</p>
+                                <h2 className="mt-1 text-lg font-semibold text-slate-900">Actualizar Datos del Paciente</h2>
+                                <p className="mt-1 text-sm text-slate-500">Ajusta los datos demográficos y clínicos del paciente.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setMostrarFormulario(false)}
+                                className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 p-5 sm:p-6">
@@ -477,9 +511,11 @@ export default function Paciente(){
                         <div className="">
                             <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Seleccione Previsión</label>
                             <div className="mt-1 [&_button]:w-full [&_button]:justify-between [&_button]:rounded-md [&_button]:border-slate-200 [&_button]:bg-slate-50/70 [&_button]:text-sm [&_button]:text-slate-700 [&_button]:shadow-none">
-                                <ShadcnSelect nombreDefault={"Seleccion Prevision"}
-                                              value1={"NO APLICA"}
+                                <ShadcnSelect nombreDefault={"Seleccione Previsión"}
+                                              value1={"FONASA"}
                                               value2={"ISAPRE"}
+                                              value3={"CONVENIO"}
+                                              value4={"SIN PREVISION"}
                                               onChange={(value) => setPrevision(value)}/>
                             </div>
                         </div>
