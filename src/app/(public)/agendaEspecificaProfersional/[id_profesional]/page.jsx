@@ -22,9 +22,9 @@ export default function CalendarioMensualHoras() {
     // Ref para evitar que resultados asíncronos antiguos sobrescriban acciones manuales recientes
     const lastManualUpdateRef = useRef(0);
     const API = process.env.NEXT_PUBLIC_API_URL;
-    
+
     const router = useRouter();
-    
+
     function formularioReservaProfesional(id_profesional) {
         router.push(`/formularioReservaProfesional/${id_profesional}`);
     }
@@ -226,6 +226,8 @@ export default function CalendarioMensualHoras() {
                     console.error('Error revalidando vecinos:', err);
                 }
             })();
+
+            formularioReservaProfesional(id_profesional);
         }
     };
 
@@ -589,10 +591,6 @@ export default function CalendarioMensualHoras() {
                     <Link href={"/agendaProfesionales"}>
                         <ShadcnButton2 nombre={"RETROCEDER"}/>
                     </Link>
-
-
-                        <ShadcnButton2 nombre={"SIGUIENTE"} funcion={()=>formularioReservaProfesional(id_profesional)}/>
-
                 </div>
 
                 <footer className="mt-10 text-center text-xs text-slate-600">

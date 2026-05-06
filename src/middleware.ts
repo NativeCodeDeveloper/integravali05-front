@@ -24,6 +24,7 @@ matcher: ['/dashboard/:path*'], // o simplemente [] si quieres que no aplique a 
 
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import type { NextRequest, NextFetchEvent } from 'next/server'
 
 const isDashboard = createRouteMatcher(['/dashboard(.*)'])
 const isSignIn = createRouteMatcher(['/sign-in(.*)'])
@@ -41,32 +42,60 @@ const isRecepcionistaAllowed = createRouteMatcher([
   '/dashboard/paciente/(.*)',
 ])
 
-export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth()
+// Handler de Clerk separado para poder envolverlo en try-catch
+const clerkHandler = clerkMiddleware(async (auth, req) => {
+  try {
+    const { userId, sessionClaims } = await auth()
 
-  if (isSignIn(req) && userId) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    if (isSignIn(req) && userId) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    if (!isDashboard(req)) return NextResponse.next()
+
+    if (!userId) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+
+    // Leer rol desde publicMetadata (configurado en Clerk Dashboard)
+    const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
+
+    // Recepcionista → solo accede a inicio + calendario, el resto → no-access
+    if (role === 'recepcionista' && !isRecepcionistaAllowed(req)) {
+      return NextResponse.redirect(new URL('/dashboard/no-access', req.url))
+    }
+
+    return NextResponse.next()
+  } catch (authError) {
+    // auth() falló — cookies __client_uat conflictivas de otro subdominio
+    console.error('[middleware] auth() failed (cookie conflict):', authError)
+    if (isDashboard(req)) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+    return NextResponse.next()
   }
-
-  if (!isDashboard(req)) return NextResponse.next()
-
-  if (!userId) {
-    return NextResponse.redirect(new URL('/sign-in', req.url))
-  }
-
-  // Leer rol desde publicMetadata (configurado en Clerk Dashboard)
-  const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
-
-  // Recepcionista → solo accede a inicio + calendario, el resto → no-access
-  if (role === 'recepcionista' && !isRecepcionistaAllowed(req)) {
-    return NextResponse.redirect(new URL('/dashboard/no-access', req.url))
-  }
-
-  return NextResponse.next()
 })
 
+// Wrapper: captura errores cuando clerkMiddleware crashea por cookies
+// de múltiples instancias Clerk en *.agendaclinicas.cl
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+  try {
+    return await clerkHandler(req, event)
+  } catch (error) {
+    console.error('[middleware] Clerk crashed (cookie conflict between subdomains):', error)
+    if (isDashboard(req)) {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+    return NextResponse.next()
+  }
+}
+
 export const config = {
-  matcher: ['/dashboard/:path*', '/sign-in/:path*'],
+  matcher: [
+    // Todas las rutas excepto archivos estáticos e internos de Next.js
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
 }
 
 
