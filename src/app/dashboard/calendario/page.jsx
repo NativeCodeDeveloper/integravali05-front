@@ -49,7 +49,7 @@ function CalendarioContent() {
     const API = process.env.NEXT_PUBLIC_API_URL;
     const popupRef = useRef(null);
     const popupDragStateRef = useRef({dragging: false, offsetX: 0, offsetY: 0});
-    const selectionGuardRef = useRef({missingProfessional: false, overlap: false});
+    const selectionGuardRef = useRef({missingProfessional: false, overlap: false, invalidDate: false});
 
     useEffect(() => {
         const style = document.createElement('style');
@@ -332,6 +332,11 @@ function CalendarioContent() {
         return String(valor).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
     }
 
+    function esFechaVigente(start) {
+        if (!(start instanceof Date) || Number.isNaN(start.getTime())) return false;
+        return start > new Date();
+    }
+
     function obtenerTipoSolapamiento(start, end, ignoredReservaId = null) {
         if (dataAgenda && dataAgenda.length > 0) {
             for (const cita of dataAgenda) {
@@ -506,6 +511,11 @@ function CalendarioContent() {
             return;
         }
 
+        if (!esFechaVigente(nuevoInicio)) {
+            toast.error("Esta fecha no esta vigente");
+            return;
+        }
+
         if (isOverlapping(nuevoInicio, nuevoFin)) {
             toast.error("Esta hora tiene un bloqueo u hora preexistente.");
             return;
@@ -528,6 +538,11 @@ function CalendarioContent() {
 
         if (!estaDentroHorarioAgenda(nuevoInicio, nuevoFin)) {
             toast.error("Solo puedes agendar entre 09:00 y 20:00 horas, con un rango valido.");
+            return;
+        }
+
+        if (!esFechaVigente(nuevoInicio)) {
+            toast.error("Esta fecha no esta vigente");
             return;
         }
 
@@ -554,6 +569,18 @@ function CalendarioContent() {
 
         if (!estaDentroHorarioAgenda(start, end)) {
             toast.error("Solo puedes agendar entre 09:00 y 20:00 horas.");
+            setSelectionPreview(null);
+            return false;
+        }
+
+        if (!esFechaVigente(start)) {
+            if (!selectionGuardRef.current.invalidDate) {
+                selectionGuardRef.current.invalidDate = true;
+                toast.error("Esta fecha no esta vigente");
+                setTimeout(() => {
+                    selectionGuardRef.current.invalidDate = false;
+                }, 1200);
+            }
             setSelectionPreview(null);
             return false;
         }
@@ -690,9 +717,100 @@ function CalendarioContent() {
     }, [draggingPopup]);
 
 
+    async function asegurarPacienteAgenda(nombrePaciente, apellidoPaciente, rut, telefono, email, mostrarToastExito = false) {
+        try {
+            const nombre = (nombrePaciente ?? "").trim();
+            const apellido = (apellidoPaciente ?? "").trim();
+            const rutLimpio = (rut ?? "").trim();
+            const rutNormalizado = normalizarRut(rutLimpio);
+            const telefonoLimpio = (telefono ?? "").trim();
+            const correo = normalizarCorreoOpcional(email);
+
+            if (!nombre || !apellido || !rutNormalizado || !telefonoLimpio) {
+                toast.error("Debe completar nombre, apellido, RUT y teléfono para ingresar el paciente.");
+                return {ok: false, creado: false, duplicado: false};
+            }
+
+            const resBusqueda = await fetch(`${API}/pacientes/contieneRut`, {
+                method: "POST",
+                headers: {Accept: "application/json", "Content-Type": "application/json"},
+                mode: "cors",
+                body: JSON.stringify({rut: rutNormalizado})
+            });
+
+            if (resBusqueda.ok) {
+                const coincidencias = await resBusqueda.json().catch(() => []);
+                const yaExiste = Array.isArray(coincidencias) && coincidencias.some((paciente) => normalizarRut(paciente.rut) === rutNormalizado);
+                if (yaExiste) {
+                    if (mostrarToastExito) {
+                        toast.success("El paciente ya se encuentra ingresado en el sistema.");
+                    }
+                    return {ok: true, creado: false, duplicado: true};
+                }
+            }
+
+            const resInsercion = await fetch(`${API}/pacientes/pacientesInsercion`, {
+                method: "POST",
+                headers: {Accept: "application/json", "Content-Type": "application/json"},
+                mode: "cors",
+                body: JSON.stringify({
+                    nombre,
+                    apellido,
+                    rut: rutNormalizado,
+                    nacimiento: "1900-01-01",
+                    sexo: "No especifica",
+                    prevision_id: 1,
+                    telefono: telefonoLimpio,
+                    correo,
+                    direccion: "Por completar",
+                    pais: "Chile",
+                    observacion1: "Creado desde agenda",
+                    observacion2: "NO ESPECIFICADO",
+                    observacion3: "NO ESPECIFICADO",
+                    apoderado: "NO ESPECIFICADO",
+                    apoderado_rut: "NO ESPECIFICADO",
+                    medicamentosUsados: "NO ESPECIFICADO",
+                    habitos: "NO ESPECIFICADO",
+                    comentariosAdicionales: "Paciente ingresado manualmente desde agenda",
+                })
+            });
+
+            if (!resInsercion.ok) {
+                const detalle = await resInsercion.json().catch(() => null);
+                console.log("Error al ingresar paciente desde agenda:", detalle);
+                toast.error("No se pudo ingresar el paciente desde la agenda.");
+                return {ok: false, creado: false, duplicado: false};
+            }
+
+            const respuestaBackend = await resInsercion.json().catch(() => null);
+
+            if (respuestaBackend?.message === "duplicado") {
+                if (mostrarToastExito) {
+                    toast.success("El paciente ya se encuentra ingresado en el sistema.");
+                }
+                return {ok: true, creado: false, duplicado: true};
+            }
+
+            if (respuestaBackend?.message === true) {
+                if (mostrarToastExito) {
+                    toast.success("Paciente ingresado correctamente. Quedó creado con datos base para completar después.");
+                }
+                return {ok: true, creado: true, duplicado: false};
+            }
+
+            toast.error("No se pudo ingresar el paciente desde la agenda.");
+            return {ok: false, creado: false, duplicado: false};
+        } catch (error) {
+            console.log(error);
+            toast.error("Ocurrió un problema al ingresar el paciente desde la agenda.");
+            return {ok: false, creado: false, duplicado: false};
+        }
+    }
+
     async function insertarNuevaReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion,id_profesional) {
         try {
-            if (!nombrePaciente || !apellidoPaciente || !rut || !telefono || !fechaInicio || !horaInicio || !horaFinalizacion || !id_profesional) {
+            const rutNormalizado = normalizarRut(rut);
+            if (!nombrePaciente || !apellidoPaciente || !rutNormalizado || !telefono || !fechaInicio || !horaInicio || !horaFinalizacion || !id_profesional) {
                 toast.error('Debe llenar todos los campos');
                 return false;
             }
@@ -700,8 +818,8 @@ function CalendarioContent() {
             const ahora = new Date();
             const inicio = new Date(`${fechaInicio}T${horaInicio}`);
             const final = new Date(`${fechaFinalizacion}T${horaFinalizacion}`);
-            if (inicio < ahora) {
-                toast.error("No es posible agendar en fechas NO vigentes");
+            if (inicio <= ahora) {
+                toast.error("No es posible agendar en horarios pasados o en la hora actual.");
                 return false;
             }
             if (!estaDentroHorarioAgenda(inicio, final)) {
@@ -717,12 +835,25 @@ function CalendarioContent() {
                 return false;
             }
 
+            const resultadoPaciente = await asegurarPacienteAgenda(
+                nombrePaciente,
+                apellidoPaciente,
+                rutNormalizado,
+                telefono,
+                correoNormalizado,
+                false
+            );
+
+            if (!resultadoPaciente.ok) {
+                return false;
+            }
+
             if (fechaInicio === fechaFinalizacion) {
                 const res = await fetch(`${API}/reservaPacientes/insertarReservaPacienteFicha`, {
                     method: "POST",
                     headers: {Accept: "application/json", "Content-Type": "application/json"},
                     mode: "cors",
-                    body: JSON.stringify({nombrePaciente, apellidoPaciente, rut, telefono, email: correoNormalizado, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva: "reservada" ,id_profesional})
+                    body: JSON.stringify({nombrePaciente, apellidoPaciente, rut: rutNormalizado, telefono, email: correoNormalizado, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva: "reservada" ,id_profesional})
                 });
                 const respuestaBackend = await res.json();
                 if (respuestaBackend.message === true) {
@@ -750,79 +881,16 @@ function CalendarioContent() {
     }
 
     async function ingresarPacienteDesdeAgenda() {
-        try {
-            const nombre = (nombrePaciente ?? "").trim();
-            const apellido = (apellidoPaciente ?? "").trim();
-            const rutLimpio = (rut ?? "").trim();
-            const telefonoLimpio = (telefono ?? "").trim();
-            const correo = normalizarCorreoOpcional(email);
+        const resultado = await asegurarPacienteAgenda(
+            nombrePaciente,
+            apellidoPaciente,
+            rut,
+            telefono,
+            email,
+            true
+        );
 
-            if (!nombre || !apellido || !rutLimpio || !telefonoLimpio) {
-                return toast.error("Debe completar nombre, apellido, RUT y teléfono para ingresar el paciente.");
-            }
-
-            const rutNormalizado = normalizarRut(rutLimpio);
-            const resBusqueda = await fetch(`${API}/pacientes/contieneRut`, {
-                method: "POST",
-                headers: {Accept: "application/json", "Content-Type": "application/json"},
-                mode: "cors",
-                body: JSON.stringify({rut: rutNormalizado})
-            });
-
-            if (resBusqueda.ok) {
-                const coincidencias = await resBusqueda.json();
-                const yaExiste = Array.isArray(coincidencias) && coincidencias.some((paciente) => normalizarRut(paciente.rut) === rutNormalizado);
-                if (yaExiste) {
-                    return toast.error("Ese paciente ya existe en la lista de pacientes regulares.");
-                }
-            }
-
-            const resInsercion = await fetch(`${API}/pacientes/pacientesInsercion`, {
-                method: "POST",
-                headers: {Accept: "application/json", "Content-Type": "application/json"},
-                mode: "cors",
-                body: JSON.stringify({
-                    nombre,
-                    apellido,
-                    rut: rutLimpio,
-                    nacimiento: "1900-01-01",
-                    sexo: "No especifica",
-                    prevision_id: 1,
-                    telefono: telefonoLimpio,
-                    correo,
-                    direccion: "Por completar",
-                    pais: "Chile",
-                    observacion1: "Creado desde agenda",
-                    observacion2: "NO ESPECIFICADO",
-                    observacion3: "NO ESPECIFICADO",
-                    apoderado: "NO ESPECIFICADO",
-                    apoderado_rut: "NO ESPECIFICADO",
-                    medicamentosUsados: "NO ESPECIFICADO",
-                    habitos: "NO ESPECIFICADO",
-                    comentariosAdicionales: "Paciente ingresado manualmente desde agenda",
-                })
-            });
-
-            if (!resInsercion.ok) {
-                const detalle = await resInsercion.json().catch(() => null);
-                console.log("Error al ingresar paciente desde agenda:", detalle);
-                return toast.error("No se pudo ingresar el paciente desde la agenda.");
-            }
-
-            const respuestaBackend = await resInsercion.json();
-
-
-            if (respuestaBackend.message === "duplicado") {
-                return toast.success("El paciente ya se encuentra ingresado en el sistema.");
-            }else if (respuestaBackend.message === true) {
-                return toast.success("Paciente ingresado correctamente. Quedó creado con datos base para completar después.");
-            }else{
-                return toast.error("No se pudo ingresar el paciente desde la agenda.");
-            }
-        } catch (error) {
-            console.log(error);
-            return toast.error("Ocurrió un problema al ingresar el paciente desde la agenda.");
-        }
+        return resultado.ok;
     }
 
     async function actualizarReservaDesdeCalendario(reservaOriginal, start, end) {
@@ -1564,15 +1632,7 @@ function CalendarioContent() {
                                     Finalizado
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-[1.25fr_0.9fr_0.95fr_0.85fr_1.3fr]">
-                                <button
-                                    onClick={ingresarPacienteDesdeAgenda}
-                                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(14,165,233,0.18)] transition-all duration-150 hover:from-cyan-600 hover:to-sky-700">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v6m3-3h-6m-6 7a4 4 0 100-8 4 4 0 000 8zm0 0H6a2 2 0 01-2-2v-1a6 6 0 016-6h2" />
-                                    </svg>
-                                    Ingresar Paciente
-                                </button>
+                            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 xl:grid-cols-4">
                                 <button
                                     onClick={() => insertarNuevaReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, id_profesional)}
                                     className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(14,165,233,0.18)] transition-all duration-150 hover:from-sky-700 hover:to-cyan-600">

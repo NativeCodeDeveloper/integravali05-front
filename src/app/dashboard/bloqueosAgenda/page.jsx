@@ -61,6 +61,110 @@ const [id_profesional, setId_profesional] = useState("");
         return new Date(`${soloFecha}T${hora}`);
     }
 
+    function crearRangoFecha(fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion) {
+        return {
+            inicio: convertirAFechaCalendario(fechaInicio, horaInicio),
+            final: convertirAFechaCalendario(fechaFinalizacion, horaFinalizacion),
+        };
+    }
+
+    function haySolapamientoRango(inicioA, finalA, inicioB, finalB) {
+        return inicioA < finalB && finalA > inicioB;
+    }
+
+    async function obtenerReservasPorProfesional(id_profesional) {
+        const res = await fetch(`${API}/reservaPacientes/seleccionarPorProfesional`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id_profesional}),
+            mode: 'cors'
+        });
+
+        if (!res.ok) {
+            throw new Error("No se pudieron cargar las reservas del profesional.");
+        }
+
+        const respuestaBackend = await res.json();
+        return Array.isArray(respuestaBackend) ? respuestaBackend : [];
+    }
+
+    async function obtenerBloqueosPorProfesional(id_profesional) {
+        const res = await fetch(`${API}/bloqueoAgenda/seleccionarBloqueosPorProfesional`,{
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id_profesional}),
+            mode: 'cors'
+        });
+
+        if (!res.ok) {
+            throw new Error("No se pudieron cargar los bloqueos del profesional.");
+        }
+
+        const respuestaBackend = await res.json();
+        return Array.isArray(respuestaBackend) ? respuestaBackend : [];
+    }
+
+    async function validarDisponibilidadBloqueo(id_profesional, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion) {
+        const {inicio, final} = crearRangoFecha(fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion);
+
+        if (Number.isNaN(inicio.getTime()) || Number.isNaN(final.getTime())) {
+            toast.error("Debe seleccionar fechas y horas validas para el bloqueo.");
+            return false;
+        }
+
+        if (final <= inicio) {
+            toast.error("La fecha final del bloqueo debe ser posterior a la fecha inicial.");
+            return false;
+        }
+
+        const [bloqueosProfesional, reservasProfesional] = await Promise.all([
+            obtenerBloqueosPorProfesional(id_profesional),
+            obtenerReservasPorProfesional(id_profesional),
+        ]);
+
+        const existeBloqueoPrevio = bloqueosProfesional.some((bloqueo) => {
+            const rangoBloqueo = crearRangoFecha(
+                bloqueo.fechaInicio,
+                bloqueo.horaInicio ?? "00:00:00",
+                bloqueo.fechaFinalizacion,
+                bloqueo.horaFinalizacion ?? "23:59:59"
+            );
+
+            return haySolapamientoRango(inicio, final, rangoBloqueo.inicio, rangoBloqueo.final);
+        });
+
+        if (existeBloqueoPrevio) {
+            toast.error("No se puede crear el bloqueo porque ya existe un bloqueo previo en ese horario.");
+            return false;
+        }
+
+        const existeReservaPaciente = reservasProfesional
+            .filter((reserva) => String(reserva.estadoReserva ?? "").toLowerCase() !== "anulada")
+            .some((reserva) => {
+                const rangoReserva = crearRangoFecha(
+                    reserva.fechaInicio,
+                    reserva.horaInicio ?? "00:00:00",
+                    reserva.fechaFinalizacion,
+                    reserva.horaFinalizacion ?? "23:59:59"
+                );
+
+                return haySolapamientoRango(inicio, final, rangoReserva.inicio, rangoReserva.final);
+            });
+
+        if (existeReservaPaciente) {
+            toast.error("No se puede crear el bloqueo porque existe una reserva de paciente en ese horario.");
+            return false;
+        }
+
+        return true;
+    }
+
 
 
     async function buscarPorProfesionalBloqueo() {
@@ -100,6 +204,18 @@ const [id_profesional, setId_profesional] = useState("");
 
         if(!fechaInicio ||!fechaFinalizacion||!horaInicio||!horaFinalizacion||!motivo || !id_profesional){
             return toast.error("Deben completarse todos los campos para ingresar el bloqueo al sistema.")
+        }
+
+        const disponible = await validarDisponibilidadBloqueo(
+            id_profesional,
+            fechaInicio,
+            horaInicio,
+            fechaFinalizacion,
+            horaFinalizacion
+        );
+
+        if (!disponible) {
+            return;
         }
 
         const res = await fetch(`${API}/bloqueoAgenda/InsertarBloqueo`,{

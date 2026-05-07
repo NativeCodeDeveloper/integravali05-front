@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Michroma } from "next/font/google";
 import MobileNav from "./MobileNav";
 import SignOutBtn from "./SignOutBtn";
+import { getDashboardRole } from "@/lib/getDashboardRole";
 
 const michroma = Michroma({ weight: "400", subsets: ["latin"], display: "swap" });
 
@@ -12,7 +13,10 @@ export const metadata = {
     description: "Panel de administración",
 };
 
-export default function DashboardLayout({ children }) {
+export default async function DashboardLayout({ children }) {
+    const role = await getDashboardRole();
+    const canViewConfiguraciones = role !== "basico";
+
     return (
         <ClerkProvider>
         <div className="h-screen w-full overflow-hidden bg-white">
@@ -259,20 +263,20 @@ export default function DashboardLayout({ children }) {
 
                             */}
 
-                            {/* — Configuraciones — */}
-                            <details className="group">
-                                <summary className="flex items-center justify-between px-2 py-1.5 text-[9px] font-medium text-white/35 hover:text-white/55 transition-colors duration-200 cursor-pointer list-none select-none tracking-[0.08em] uppercase">
-                                    <span className="flex items-center gap-2">
-                                        <svg className="h-3.5 w-3.5 text-cyan-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            {canViewConfiguraciones && (
+                                <details className="group">
+                                    <summary className="flex items-center justify-between px-2 py-1.5 text-[9px] font-medium text-white/35 hover:text-white/55 transition-colors duration-200 cursor-pointer list-none select-none tracking-[0.08em] uppercase">
+                                        <span className="flex items-center gap-2">
+                                            <svg className="h-3.5 w-3.5 text-cyan-400/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Configuraciones
+                                        </span>
+                                        <svg className="h-3 w-3 text-cyan-400/60 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
                                         </svg>
-                                        Configuraciones
-                                    </span>
-                                    <svg className="h-3 w-3 text-cyan-400/60 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
-                                    </svg>
-                                </summary>
+                                    </summary>
 
 
                                 {/* —
@@ -301,38 +305,39 @@ export default function DashboardLayout({ children }) {
                                     </Link>
 
                                  — */}
-                                <div className="mt-1 ml-1 space-y-0.5 border-l border-white/[0.06] pl-3">
-                                    <Link
-                                        href="/dashboard/profesionales"
-                                        className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
-                                    >
-                                        <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
-                                        Registro de Agendas
-                                    </Link>
-                                    <Link
-                                        href="/dashboard/serviciosAgendamiento"
-                                        className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
-                                    >
-                                        <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
-                                        Prestaciones en Agenda
-                                    </Link>
-                                    <Link
-                                        href="/dashboard/tarifaServicio"
-                                        className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
-                                    >
-                                        <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
-                                        Cobro por Consulta
-                                    </Link>
-                                    <Link
-                                        href="/dashboard/fichasClinicasPlantillas"
-                                        className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
-                                    >
-                                        <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
-                                        Fichas Clinicas
-                                    </Link>
+                                    <div className="mt-1 ml-1 space-y-0.5 border-l border-white/[0.06] pl-3">
+                                        <Link
+                                            href="/dashboard/profesionales"
+                                            className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
+                                        >
+                                            <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
+                                            Registro de Agendas
+                                        </Link>
+                                        <Link
+                                            href="/dashboard/serviciosAgendamiento"
+                                            className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
+                                        >
+                                            <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
+                                            Prestaciones en Agenda
+                                        </Link>
+                                        <Link
+                                            href="/dashboard/tarifaServicio"
+                                            className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
+                                        >
+                                            <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
+                                            Cobro por Consulta
+                                        </Link>
+                                        <Link
+                                            href="/dashboard/fichasClinicasPlantillas"
+                                            className="group/link flex items-center gap-2.5 rounded-md px-2 py-[6px] text-[12.5px] font-light text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-all duration-200"
+                                        >
+                                            <span className="h-[3px] w-[3px] rounded-full bg-white/15 group-hover/link:bg-violet-400 group-hover/link:shadow-[0_0_6px_rgba(139,92,246,0.6)] transition-all duration-200" />
+                                            Fichas Clinicas
+                                        </Link>
 
-                                </div>
-                            </details>
+                                    </div>
+                                </details>
+                            )}
 
                         </div>
 

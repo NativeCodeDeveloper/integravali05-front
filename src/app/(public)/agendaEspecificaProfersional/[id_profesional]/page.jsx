@@ -22,11 +22,18 @@ export default function CalendarioMensualHoras() {
     // Ref para evitar que resultados asíncronos antiguos sobrescriban acciones manuales recientes
     const lastManualUpdateRef = useRef(0);
     const API = process.env.NEXT_PUBLIC_API_URL;
-
+    
     const router = useRouter();
+    
+    function formularioReservaProfesional(id_profesional, fecha, horaInicioSeleccionada, horaFinSeleccionada) {
+        const params = new URLSearchParams();
 
-    function formularioReservaProfesional(id_profesional) {
-        router.push(`/formularioReservaProfesional/${id_profesional}`);
+        if (fecha) params.set("fecha", fecha);
+        if (horaInicioSeleccionada) params.set("hora", horaInicioSeleccionada);
+        if (horaFinSeleccionada) params.set("horaFin", horaFinSeleccionada);
+
+        const query = params.toString();
+        router.push(`/formularioReservaProfesional/${id_profesional}${query ? `?${query}` : ""}`);
     }
 
     useEffect(() => {
@@ -227,7 +234,7 @@ export default function CalendarioMensualHoras() {
                 }
             })();
 
-            formularioReservaProfesional(id_profesional);
+            formularioReservaProfesional(id_profesional, fechaYMD, hora, horaFinAuto);
         }
     };
 

@@ -103,6 +103,24 @@ export default function EdicionFichaClinica() {
         }
     }
 
+    function normalizarFechaInput(fecha) {
+        if (!fecha) return "";
+
+        if (typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha.trim())) {
+            return fecha.trim();
+        }
+
+        const date = new Date(fecha);
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
     async function listarPlantillas() {
         try {
             const res = await fetch(`${API}/fichaPlantilla/listarPlantillas`)
@@ -157,6 +175,12 @@ export default function EdicionFichaClinica() {
                 return toast.error('Espere a que se cargue la plantilla');
             }
 
+            const fechaConsultaNormalizada = normalizarFechaInput(fechaConsulta);
+
+            if (!fechaConsultaNormalizada) {
+                return toast.error('Asegurese de marcar la fecha de consulta antes de actualizar la ficha.');
+            }
+
             // Validar campos requeridos
             {
                 const camposFaltantes = []
@@ -206,7 +230,7 @@ export default function EdicionFichaClinica() {
                         diagnostico: "",
                         indicaciones: "",
                         archivosAdjuntos: "",
-                        fechaConsulta,
+                        fechaConsulta: fechaConsultaNormalizada,
                         consentimientoFirmado: "",
                         id_plantilla: idPlantilla,
                         datosDinamicos: datosEnriquecidos,
@@ -254,7 +278,7 @@ export default function EdicionFichaClinica() {
                     if (dataFichasClinicas.length > 0) {
                         const f = dataFichasClinicas[0];
                         setObservaciones(f.observaciones || "");
-                        setFechaConsulta(f.fechaConsulta || "");
+                        setFechaConsulta(normalizarFechaInput(f.fechaConsulta));
 
                         if (f.id_plantilla) {
                             // Ficha con plantilla dinámica

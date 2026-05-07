@@ -203,6 +203,7 @@ export default function Calendario() {
     const [backgroundCalendarEvents, setBackgroundCalendarEvents] = useState([]);
     const [listaProfesionales, setListaProfesionales] = useState([]);
     const [id_profesional, setId_profesional] = useState("");
+    const selectionGuardRef = useRef({invalidDate: false, overlap: false});
 
     useEffect(() => {
         setClienteMontado(true);
@@ -279,6 +280,11 @@ export default function Calendario() {
     function convertirAFechaCalendario(fechaISO, hora) {
         const soloFecha = fechaISO.slice(0, 10);
         return new Date(`${soloFecha}T${hora}`);
+    }
+
+    function esFechaVigente(start) {
+        if (!(start instanceof Date) || Number.isNaN(start.getTime())) return false;
+        return start > new Date();
     }
 
     function estaDentroHorarioAgenda(start, end) {
@@ -461,8 +467,8 @@ export default function Calendario() {
             const inicio = new Date(`${fechaInicio}T${horaInicio}`);
             const final = new Date(`${fechaFinalizacion}T${horaFinalizacion}`);
 
-            if (inicio < ahora) {
-                return toast.error("No es posible agendar en fechas NO vigentes")
+            if (inicio <= ahora) {
+                return toast.error("No es posible agendar en horarios pasados o en la hora actual.")
             }
 
             if (final < inicio) {
@@ -1178,12 +1184,28 @@ export default function Calendario() {
                             onSelecting={(slot) => {
                                 const start = slot.start ?? slot;
                                 const end = slot.end ?? slot;
+                                if (!esFechaVigente(start)) {
+                                    if (!selectionGuardRef.current.invalidDate) {
+                                        selectionGuardRef.current.invalidDate = true;
+                                        toast.error("Esta fecha no esta vigente");
+                                        setTimeout(() => {
+                                            selectionGuardRef.current.invalidDate = false;
+                                        }, 1200);
+                                    }
+                                    return false;
+                                }
                                 if (!estaDentroHorarioAgenda(start, end)) {
                                     toast.error("Solo puedes visualizar y seleccionar entre 09:00 y 20:00 horas.");
                                     return false;
                                 }
                                 if (isOverlapping(start, end)) {
-                                    toast.error('Horario no disponible (solapa con una reserva existente)');
+                                    if (!selectionGuardRef.current.overlap) {
+                                        selectionGuardRef.current.overlap = true;
+                                        toast.error('Horario no disponible (solapa con una reserva existente)');
+                                        setTimeout(() => {
+                                            selectionGuardRef.current.overlap = false;
+                                        }, 1200);
+                                    }
                                     return false;
                                 }
                                 return true;
@@ -1210,6 +1232,10 @@ export default function Calendario() {
                             onSelectSlot={(slotInfo) => {
                                 const start = slotInfo.start ?? slotInfo;
                                 const end = slotInfo.end ?? slotInfo;
+                                if (!esFechaVigente(start)) {
+                                    toast.error("Esta fecha no esta vigente");
+                                    return;
+                                }
                                 if (!estaDentroHorarioAgenda(start, end)) {
                                     toast.error("Solo puedes visualizar y seleccionar entre 09:00 y 20:00 horas.");
                                     return;

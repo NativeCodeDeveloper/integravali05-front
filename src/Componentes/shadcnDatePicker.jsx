@@ -14,8 +14,11 @@ import {
 
 export default function ShadcnDatePicker({label = "Fecha", value, onChange}) {
     const [open, setOpen] = React.useState(false)
-    const initialDate = value ? new Date(value) : undefined
-    const [date, setDate] = React.useState(initialDate)
+    const [date, setDate] = React.useState(value ? new Date(value) : undefined)
+
+    React.useEffect(() => {
+        setDate(value ? new Date(value) : undefined)
+    }, [value])
 
     function formatDate(d) {
         if (!d) return ""
