@@ -69,10 +69,10 @@ export default function CalendarioMensualHoras() {
         return dias;
     };
 
-    // Genera los bloques de atención (60 min) según el día de la semana
-    // Lunes a Sábado: 09:00 - 22:00
+    // Genera los bloques de atención (45 min) según el día de la semana
+    // Lunes a Sábado: 09:00 - 19:00
     // Domingo: No disponible
-    // Los inicios van separados por 70 minutos (60 atención + 10 descanso), pero los descansos no se muestran.
+    // Los bloques son continuos, sin tiempo entre atenciones.
     const attentionSlots = useMemo(() => {
         if (!fechaSeleccionada) return [];
 
@@ -83,8 +83,9 @@ export default function CalendarioMensualHoras() {
 
         const slots = [];
         const startMinutes = 9 * 60; // 09:00
-        // Lunes a Sábado hasta 22:00
-        const endMinutes = 22 * 60;
+        // Lunes a Sábado hasta 19:00
+        const endMinutes = 19 * 60;
+        const slotDuration = 45;
         let cursor = startMinutes;
 
         const minutesToHHMM = (min) => {
@@ -93,12 +94,11 @@ export default function CalendarioMensualHoras() {
             return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
         };
 
-        while (cursor + 60 <= endMinutes) {
+        while (cursor + slotDuration <= endMinutes) {
             const attStart = cursor;
-            const attEnd = cursor + 60;
+            const attEnd = cursor + slotDuration;
             slots.push({start: minutesToHHMM(attStart), end: minutesToHHMM(attEnd)});
-            // avanzar 60 + 10 minutos (=70) para el siguiente inicio
-            cursor = attEnd + 10;
+            cursor = attEnd;
         }
 
         return slots;
@@ -132,7 +132,7 @@ export default function CalendarioMensualHoras() {
         // Validar que no sea domingo
         const dayOfWeek = fecha.getDay();
         if (dayOfWeek === 0) {
-            toast.error("Las atenciones son de Lunes a Sábado.\nLun-Sáb: 9:00-22:00", {
+            toast.error("Las atenciones son de Lunes a Sábado.\nLun-Sáb: 9:00-19:00", {
                 duration: 4000,
                 style: {
                     background: '#FEE2E2',
@@ -149,7 +149,7 @@ export default function CalendarioMensualHoras() {
 
         // Si ya hay hora seleccionada, mantenla y recalcula las cadenas en el contexto
         if (horaInicio) {
-            const horaFinAuto = addMinutesToHHMM(horaInicio, 60);
+            const horaFinAuto = addMinutesToHHMM(horaInicio, 45);
             setHoraFin(horaFinAuto);
             setFechaInicio(fechaYMD);
             setFechaFinalizacion(fechaYMD);
@@ -184,7 +184,7 @@ export default function CalendarioMensualHoras() {
             }
         }
 
-        const horaFinAuto = addMinutesToHHMM(hora, 60);
+        const horaFinAuto = addMinutesToHHMM(hora, 45);
 
         setHoraInicio(hora);
         setHoraFin(horaFinAuto);
@@ -490,10 +490,10 @@ export default function CalendarioMensualHoras() {
                         <div className="mt-5">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-[#173f39]">
-                                    Agenda (09:00–22:00)
+                                    Agenda (09:00–19:00)
                                 </h3>
                                 <div className="flex items-center gap-3">
-                                    <p className="text-xs text-[#6b8b84]">Bloques de 60 min</p>
+                                    <p className="text-xs text-[#6b8b84]">Bloques de 45 min</p>
                                     {checkingBlocked && (
                                         <div className="flex items-center gap-2 text-xs text-[#6b8b84]">
                                             <svg className="w-3 h-3 animate-spin text-[#4f7a72]"
@@ -595,7 +595,7 @@ export default function CalendarioMensualHoras() {
 
                 <footer className="mt-10 text-center text-xs text-slate-600">
                     <p className="mt-2 text-[11px] text-[#86a49d]">
-                        Horarios: Lun-Sáb 9:00-22:00 | Dom Cerrado
+                        Horarios: Lun-Sáb 9:00-19:00 | Dom Cerrado
                     </p>
                 </footer>
             </div>
