@@ -4,7 +4,7 @@ import ShadcnInput from "@/Componentes/shadcnInput2";
 import ShadcnButton2 from "@/Componentes/shadcnButton2";
 import {useAgenda} from "@/ContextosGlobales/AgendaContext";
 import {toast} from "react-hot-toast";
-import {useParams, useRouter, useSearchParams} from "next/navigation";
+import {useParams, useRouter} from "next/navigation";
 import {SelectDinamic} from "@/Componentes/SelectDinamic";
 
 export default function FormularioReservaProfesional() {
@@ -14,16 +14,7 @@ export default function FormularioReservaProfesional() {
     const [rut, setRut] = useState("");
     const [telefono, setTelefono] = useState("");
     const [email, setEmail] = useState("");
-    const {
-        horaInicio,
-        horaFin,
-        fechaInicio,
-        fechaFinalizacion,
-        setHoraInicio,
-        setHoraFin,
-        setFechaInicio,
-        setFechaFinalizacion
-    } = useAgenda();
+    const {horaInicio, horaFin, fechaInicio, fechaFinalizacion,} = useAgenda();
     const [listaTarifasProfesionales, setListaTarifasProfesionales] = useState([]);
 
     const [profesionalSeleccionado, setProfesionalSeleccionado] = useState("");
@@ -32,7 +23,6 @@ export default function FormularioReservaProfesional() {
     const[descripcionProfesional, setDescripcionProfesional] = useState("");
 
     const {id_profesional} = useParams();
-    const searchParams = useSearchParams();
 
     const [totalPago, setTotalPago] = useState("");
     const [procesandoPago, setProcesandoPago] = useState(false);
@@ -73,7 +63,7 @@ export default function FormularioReservaProfesional() {
             const res = await fetch(`${API}/tarifasProfesional/seleccionarTarifasPorProfesional`, {
                 method: 'POST',
                 headers: {Accept: 'application/json',
-                'Content-Type': 'application/json',},
+                    'Content-Type': 'application/json',},
                 mode: 'cors',
                 body: JSON.stringify({profesional_id}),
             })
@@ -101,101 +91,66 @@ export default function FormularioReservaProfesional() {
         seleccionarProfesionalDatos(id_profesional)
     }, [id_profesional]);
 
-    useEffect(() => {
-        const fechaUrl = searchParams.get("fecha") ?? "";
-        const horaUrl = searchParams.get("hora") ?? "";
-        const horaFinUrl = searchParams.get("horaFin") ?? "";
-
-        if (fechaUrl && !fechaInicio) {
-            setFechaInicio(fechaUrl);
-        }
-
-        if (fechaUrl && !fechaFinalizacion) {
-            setFechaFinalizacion(fechaUrl);
-        }
-
-        if (horaUrl && !horaInicio) {
-            setHoraInicio(horaUrl);
-        }
-
-        if (horaFinUrl && !horaFin) {
-            setHoraFin(horaFinUrl);
-        }
-    }, [
-        searchParams,
-        fechaInicio,
-        fechaFinalizacion,
-        horaInicio,
-        horaFin,
-        setFechaInicio,
-        setFechaFinalizacion,
-        setHoraInicio,
-        setHoraFin
-    ]);
-
     function normalizarRut(valor = "") {
         return String(valor).replace(/[^0-9kK]/g, "").toUpperCase();
     }
 
-    function formatearRut(rut = "") {
-        const rutNormalizado = normalizarRut(rut);
-
-        if (rutNormalizado.length < 2) {
-            return rutNormalizado;
-        }
-
-        const cuerpo = rutNormalizado.slice(0, -1);
-        const dv = rutNormalizado.slice(-1);
-        const cuerpoConPuntos = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-        return `${cuerpoConPuntos}-${dv}`;
+    function limpiarRutInput(valor = "") {
+        return normalizarRut(valor).slice(0, 9);
     }
 
-    function normalizarCorreoOpcional(valor = "") {
-        const correo = String(valor ?? "").trim();
-        return correo || null;
-    }
+    function calcularDigitoVerificadorRut(cuerpoRut = "") {
+        let suma = 0;
+        let multiplicador = 2;
 
-    async function buscarPacientesPorRut(rutPaciente) {
-        const rutNormalizado = normalizarRut(rutPaciente);
-        const rutFormateado = formatearRut(rutNormalizado);
-        const variantes = [...new Set([rutPaciente, rutNormalizado, rutFormateado].filter(Boolean))];
-        const resultados = [];
-
-        for (const variante of variantes) {
-            const res = await fetch(`${API}/pacientes/contieneRut`, {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json"
-                },
-                mode: "cors",
-                body: JSON.stringify({rut: variante})
-            });
-
-            if (!res.ok) {
-                continue;
-            }
-
-            const coincidencias = await res.json().catch(() => []);
-            if (Array.isArray(coincidencias)) {
-                resultados.push(...coincidencias);
-            }
+        for (let index = cuerpoRut.length - 1; index >= 0; index -= 1) {
+            suma += Number(cuerpoRut[index]) * multiplicador;
+            multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
         }
 
-        return resultados;
+        const resto = 11 - (suma % 11);
+
+        if (resto === 11) return "0";
+        if (resto === 10) return "K";
+
+        return String(resto);
+    }
+
+    function esRutValido(valor = "") {
+        const rutLimpio = limpiarRutInput(valor);
+
+        if (!/^\d{7,8}[0-9K]$/.test(rutLimpio)) {
+            return false;
+        }
+
+        const cuerpoRut = rutLimpio.slice(0, -1);
+        const digitoVerificador = rutLimpio.slice(-1);
+
+        return calcularDigitoVerificadorRut(cuerpoRut) === digitoVerificador;
+    }
+
+    function obtenerRutNormalizadoValido(valor = "", mostrarToast = true) {
+        const rutLimpio = limpiarRutInput(valor);
+
+        if (!rutLimpio) {
+            if (mostrarToast) {
+                toast.error("Debe ingresar el RUT del paciente sin puntos ni guion.");
+            }
+            return null;
+        }
+
+        if (!esRutValido(rutLimpio)) {
+            if (mostrarToast) {
+                toast.error("Debe ingresar un RUT valido, sin puntos ni guion.");
+            }
+            return null;
+        }
+
+        return rutLimpio;
     }
 
     function crearFechaReserva(fecha, hora) {
         return new Date(`${fecha}T${hora}`);
-    }
-
-    function obtenerToastDatosFaltantes() {
-        if (!fechaInicio || !horaInicio || !fechaFinalizacion || !horaFin) {
-            return "Asegurese de que la fecha y la hora esten seleccionadas antes de continuar.";
-        }
-
-        return "Debe completar todos los datos para continuar.";
     }
 
     async function asegurarPacienteAgendamiento(nombrePaciente, apellidoPaciente, rut, telefono, email) {
@@ -203,22 +158,38 @@ export default function FormularioReservaProfesional() {
             const nombre = (nombrePaciente ?? "").trim();
             const apellido = (apellidoPaciente ?? "").trim();
             const rutPaciente = (rut ?? "").trim();
-            const rutNormalizado = normalizarRut(rutPaciente);
+            const rutNormalizado = obtenerRutNormalizadoValido(rutPaciente);
             const telefonoPaciente = (telefono ?? "").trim();
-            const correoPaciente = normalizarCorreoOpcional(email);
+            const correoPaciente = (email ?? "").trim();
+
+            if (!rutNormalizado) {
+                return false;
+            }
 
             if (!nombre || !apellido || !rutNormalizado || !telefonoPaciente) {
                 toast.error("Debe completar nombre, apellido, RUT y telefono para continuar.");
-                return {ok: false, creado: false, existente: false, rut: rutNormalizado};
+                return false;
             }
 
-            const coincidencias = await buscarPacientesPorRut(rutNormalizado);
-            const pacienteExistente = Array.isArray(coincidencias) && coincidencias.some(
-                (paciente) => normalizarRut(paciente.rut) === rutNormalizado
-            );
+            const resBusqueda = await fetch(`${API}/pacientes/contieneRut`, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json"
+                },
+                mode: "cors",
+                body: JSON.stringify({rut: rutNormalizado})
+            });
 
-            if (pacienteExistente) {
-                return {ok: true, creado: false, existente: true, rut: rutNormalizado};
+            if (resBusqueda.ok) {
+                const coincidencias = await resBusqueda.json().catch(() => []);
+                const pacienteExistente = Array.isArray(coincidencias) && coincidencias.some(
+                    (paciente) => normalizarRut(paciente.rut) === rutNormalizado
+                );
+
+                if (pacienteExistente) {
+                    return true;
+                }
             }
 
             const res = await fetch(`${API}/pacientes/pacientesInsercion`, {
@@ -236,7 +207,7 @@ export default function FormularioReservaProfesional() {
                     sexo: "No especifica",
                     prevision_id: 1,
                     telefono: telefonoPaciente,
-                    correo: correoPaciente,
+                    correo: correoPaciente || null,
                     direccion: "Por completar",
                     pais: "Chile",
                     observacion1: "Creado desde formulario publico",
@@ -252,29 +223,126 @@ export default function FormularioReservaProfesional() {
 
             if (!res.ok) {
                 toast.error("No se pudo registrar el paciente para continuar con el agendamiento.");
-                return {ok: false, creado: false, existente: false, rut: rutNormalizado};
+                return false;
             }
 
             const respuestaBackend = await res.json().catch(() => null);
 
             if (respuestaBackend?.message === true || respuestaBackend?.message === "duplicado") {
-                return {
-                    ok: true,
-                    creado: respuestaBackend?.message === true,
-                    existente: respuestaBackend?.message === "duplicado",
-                    rut: rutNormalizado
-                };
+                return true;
             }
 
             toast.error("No se pudo registrar el paciente para continuar con el agendamiento.");
-            return {ok: false, creado: false, existente: false, rut: rutNormalizado};
+            return false;
         } catch (error) {
             console.error(error);
             toast.error("Ocurrio un problema al registrar el paciente.");
-            return {ok: false, creado: false, existente: false, rut: normalizarRut(rut)};
+            return false;
         }
     }
 
+
+    async function pagarMercadoPago(
+        nombrePaciente,
+        apellidoPaciente,
+        rut,
+        telefono,
+        email,
+        fechaInicio,
+        horaInicio,
+        fechaFinalizacion,
+        horaFin,
+        totalPago,
+        profesionalSeleccionado,
+        servicioSeleccionado,
+        id_profesional
+    ) {
+        try {
+            const rutNormalizado = obtenerRutNormalizadoValido(rut);
+
+            if (!rutNormalizado) {
+                return;
+            }
+
+            if (!API) {
+                return toast.error("No se encontro la configuracion de pagos. Intente nuevamente mas tarde.");
+            }
+
+            if (!nombrePaciente || !apellidoPaciente || !rutNormalizado || !telefono || !email || !fechaInicio || !horaInicio || !fechaFinalizacion || !horaFin || !id_profesional) {
+                return toast.error("Debe completar toda la informacion para realizar la reserva");
+            }
+
+            if (!servicioSeleccionado || Number(totalPago) <= 0) {
+                return toast.error("Debe seleccionar un servicio para continuar con el pago");
+            }
+
+            const inicioReserva = crearFechaReserva(fechaInicio, horaInicio);
+            if (inicioReserva <= new Date()) {
+                return toast.error("No es posible agendar en horarios pasados o en la hora actual.");
+            }
+
+            const pacienteDisponible = await asegurarPacienteAgendamiento(
+                nombrePaciente,
+                apellidoPaciente,
+                rutNormalizado,
+                telefono,
+                email
+            );
+
+            if (!pacienteDisponible) {
+                return;
+            }
+
+            setProcesandoPago(true);
+
+            const horaFinalizacion = horaFin;
+
+            const res = await fetch(`${API}/pagosMercadoPago/create-order`, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    tituloProducto: `Reserva Consulta: ${servicioSeleccionado} con ${profesionalSeleccionado}`,
+                    precio: Number(totalPago),
+                    cantidad: 1,
+                    nombrePaciente,
+                    apellidoPaciente,
+                    rut: rutNormalizado,
+                    telefono,
+                    email,
+                    fechaInicio,
+                    horaInicio,
+                    fechaFinalizacion,
+                    horaFinalizacion,
+                    estadoReserva: "pendiente pago",
+                    totalPago: Number(totalPago),
+                    id_profesional
+                }),
+                mode: "cors",
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (!res.ok) {
+                return toast.error(data?.error || "No se pudo iniciar el cobro con Mercado Pago");
+            }
+
+            const checkoutUrl = data?.init_point || data?.sandbox_init_point;
+
+            if (!checkoutUrl) {
+                return toast.error("No se recibio el enlace de pago de Mercado Pago");
+            }
+
+            window.location.href = checkoutUrl;
+        } catch (err) {
+            console.error(err);
+            return toast.error("No se puede procesar el pago. Intente nuevamente o contacte soporte.");
+        } finally {
+            setProcesandoPago(false);
+        }
+    }
 
     function comprobanteAgendamiento() {
         setNombrePaciente("");
@@ -302,13 +370,14 @@ export default function FormularioReservaProfesional() {
         id_profesional
     ){
         try {
-            setProcesandoPago(true);
+            const rutNormalizado = obtenerRutNormalizadoValido(rut);
 
-            const rutNormalizado = normalizarRut(rut);
-            const correoPaciente = normalizarCorreoOpcional(email);
+            if (!rutNormalizado) {
+                return false;
+            }
 
             if (!nombrePaciente || !apellidoPaciente || !rutNormalizado || !telefono || !email || !fechaInicio || !horaInicio || !horaFinalizacion || !id_profesional) {
-                toast.error(obtenerToastDatosFaltantes());
+                toast.error('Debe llenar todos los campos');
                 return false;
             }
 
@@ -318,15 +387,15 @@ export default function FormularioReservaProfesional() {
                 return false;
             }
 
-            const resultadoPaciente = await asegurarPacienteAgendamiento(
+            const pacienteDisponible = await asegurarPacienteAgendamiento(
                 nombrePaciente,
                 apellidoPaciente,
                 rutNormalizado,
                 telefono,
-                correoPaciente
+                email
             );
 
-            if (!resultadoPaciente.ok) {
+            if (!pacienteDisponible) {
                 return false;
             }
 
@@ -337,9 +406,9 @@ export default function FormularioReservaProfesional() {
                 body: JSON.stringify({
                     nombrePaciente,
                     apellidoPaciente,
-                    rut: resultadoPaciente.rut,
+                    rut: rutNormalizado,
                     telefono,
-                    email: correoPaciente,
+                    email,
                     fechaInicio,
                     horaInicio,
                     fechaFinalizacion,
@@ -356,16 +425,8 @@ export default function FormularioReservaProfesional() {
                 comprobanteAgendamiento();
                 return toast.success('Cita Agendada');
             }
-
-            if (respuestaBackend.message === "conflicto") {
-                return toast.error("El horario seleccionado ya no se encuentra disponible.");
-            }
-
-            return toast.error('Hubo un problema, intente agendar por otro medio');
         }catch (error) {
             return toast.error('Hubo un problema, intente agendar por otro medio');
-        } finally {
-            setProcesandoPago(false);
         }
     }
 
@@ -462,11 +523,20 @@ export default function FormularioReservaProfesional() {
                                 <ShadcnInput
                                     value={rut}
                                     onChange={(e) => {
-                                        const value = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
-                                        setRut(value);
+                                        setRut(limpiarRutInput(e.target.value));
+                                    }}
+                                    onBlur={() => {
+                                        const rutLimpio = limpiarRutInput(rut);
+                                        setRut(rutLimpio);
+
+                                        if (rutLimpio && !esRutValido(rutLimpio)) {
+                                            toast.error("El RUT ingresado no es valido.");
+                                        }
                                     }}
                                     placeholder="12345678K (Sin puntos ni guion)"
                                     className="w-full"
+                                    maxLength={9}
+                                    autoCapitalize="characters"
                                 />
                             </div>
                             <div>
@@ -532,17 +602,17 @@ export default function FormularioReservaProfesional() {
                     {/* Acciones */}
                     <div className="flex flex-col-reverse gap-3 border-t border-[#D5EDE9] pt-6 sm:flex-row sm:justify-end">
 
-                            <ShadcnButton2 nombre={"RETROCEDER"} funcion={()=>volver(id_profesional)}/>
+                        <ShadcnButton2 nombre={"RETROCEDER"} funcion={()=>volver(id_profesional)}/>
 
                         <ShadcnButton2
-                            nombre={procesandoPago ? "AGENDANDO..." : "FINALIZAR AGENDAMIENTO"}
+                            nombre={procesandoPago ? "FINALIZANDO AGENDAMIENTO..." : "FINALIZAR AGENDAMIENTO"}
                             funcion={(e) => {
                                 if (e?.preventDefault) e.preventDefault();
                                 if (e?.stopPropagation) e.stopPropagation();
 
                                 if (procesandoPago) return;
 
-                                return agendarSinPago(
+                                return pagarMercadoPago(
                                     nombrePaciente,
                                     apellidoPaciente,
                                     rut,
@@ -552,6 +622,9 @@ export default function FormularioReservaProfesional() {
                                     horaInicio,
                                     fechaFinalizacion,
                                     horaFin,
+                                    totalPago,
+                                    profesionalSeleccionado,
+                                    servicioSeleccionado,
                                     id_profesional
                                 );
                             }}
