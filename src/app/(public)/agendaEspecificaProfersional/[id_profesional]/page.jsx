@@ -14,6 +14,31 @@ function formatDateToYMD(date) {
     return `${y}-${m}-${d}`;
 }
 
+function minutesToHHMM(totalMinutes) {
+    const hh = Math.floor(totalMinutes / 60);
+    const mm = totalMinutes % 60;
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function buildSlotRange(startMinutes, endMinutes, slotDuration = 45) {
+    const slots = [];
+    let cursor = startMinutes;
+
+    while (cursor + slotDuration <= endMinutes) {
+        slots.push({
+            start: minutesToHHMM(cursor),
+            end: minutesToHHMM(cursor + slotDuration),
+        });
+        cursor += slotDuration;
+    }
+
+    return slots;
+}
+
+const WEEKDAY_AM_SLOTS = buildSlotRange(9 * 60, 14 * 60 + 15);
+const WEEKDAY_PM_SLOTS = buildSlotRange(14 * 60 + 30, 19 * 60 + 45);
+const SATURDAY_SLOTS = [...WEEKDAY_AM_SLOTS];
+
 export default function CalendarioMensualHoras() {
     const {id_profesional} = useParams();
     const [nombreProfesional, setNombreProfesional] = useState("");
@@ -22,18 +47,11 @@ export default function CalendarioMensualHoras() {
     // Ref para evitar que resultados asíncronos antiguos sobrescriban acciones manuales recientes
     const lastManualUpdateRef = useRef(0);
     const API = process.env.NEXT_PUBLIC_API_URL;
-    
+
     const router = useRouter();
-    
-    function formularioReservaProfesional(id_profesional, fecha, horaInicioSeleccionada, horaFinSeleccionada) {
-        const params = new URLSearchParams();
 
-        if (fecha) params.set("fecha", fecha);
-        if (horaInicioSeleccionada) params.set("hora", horaInicioSeleccionada);
-        if (horaFinSeleccionada) params.set("horaFin", horaFinSeleccionada);
-
-        const query = params.toString();
-        router.push(`/formularioReservaProfesional/${id_profesional}${query ? `?${query}` : ""}`);
+    function formularioReservaProfesional(id_profesional) {
+        router.push(`/formularioReservaProfesional/${id_profesional}`);
     }
 
     useEffect(() => {
@@ -76,39 +94,15 @@ export default function CalendarioMensualHoras() {
         return dias;
     };
 
-    // Genera los bloques de atención (45 min) según el día de la semana
-    // Lunes a Sábado: 09:00 - 19:00
-    // Domingo: No disponible
-    // Los bloques son continuos, sin tiempo entre atenciones.
     const attentionSlots = useMemo(() => {
         if (!fechaSeleccionada) return [];
 
         const dayOfWeek = fechaSeleccionada.getDay(); // 0=domingo, 6=sábado
 
-        // Domingo no tiene horarios
         if (dayOfWeek === 0) return [];
+        if (dayOfWeek === 6) return SATURDAY_SLOTS;
 
-        const slots = [];
-        const startMinutes = 9 * 60; // 09:00
-        // Lunes a Sábado hasta 19:00
-        const endMinutes = 19 * 60;
-        const slotDuration = 45;
-        let cursor = startMinutes;
-
-        const minutesToHHMM = (min) => {
-            const hh = Math.floor(min / 60);
-            const mm = min % 60;
-            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-        };
-
-        while (cursor + slotDuration <= endMinutes) {
-            const attStart = cursor;
-            const attEnd = cursor + slotDuration;
-            slots.push({start: minutesToHHMM(attStart), end: minutesToHHMM(attEnd)});
-            cursor = attEnd;
-        }
-
-        return slots;
+        return [...WEEKDAY_AM_SLOTS, ...WEEKDAY_PM_SLOTS];
     }, [fechaSeleccionada]);
 
     const addMinutesToHHMM = (hhmm, minutesToAdd) => {
@@ -139,7 +133,7 @@ export default function CalendarioMensualHoras() {
         // Validar que no sea domingo
         const dayOfWeek = fecha.getDay();
         if (dayOfWeek === 0) {
-            toast.error("Las atenciones son de Lunes a Sábado.\nLun-Sáb: 9:00-19:00", {
+            toast.error("Las atenciones son de lunes a viernes en jornada completa y sábado solo AM.", {
                 duration: 4000,
                 style: {
                     background: '#FEE2E2',
@@ -234,7 +228,7 @@ export default function CalendarioMensualHoras() {
                 }
             })();
 
-            formularioReservaProfesional(id_profesional, fechaYMD, hora, horaFinAuto);
+            formularioReservaProfesional(id_profesional);
         }
     };
 
@@ -497,7 +491,7 @@ export default function CalendarioMensualHoras() {
                         <div className="mt-5">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-[#173f39]">
-                                    Agenda (09:00–19:00)
+                                    {fechaSeleccionada.getDay() === 6 ? "Agenda (09:00–14:15)" : "Agenda (09:00–14:15 / 14:30–19:45)"}
                                 </h3>
                                 <div className="flex items-center gap-3">
                                     <p className="text-xs text-[#6b8b84]">Bloques de 45 min</p>
@@ -602,7 +596,7 @@ export default function CalendarioMensualHoras() {
 
                 <footer className="mt-10 text-center text-xs text-slate-600">
                     <p className="mt-2 text-[11px] text-[#86a49d]">
-                        Horarios: Lun-Sáb 9:00-19:00 | Dom Cerrado
+                        Horarios: Lun-Vie 09:00-14:15 y 14:30-19:45 | Sáb 09:00-14:15 | Dom cerrado
                     </p>
                 </footer>
             </div>
