@@ -1,15 +1,51 @@
 'use client'
 import {Suspense} from "react";
 import {useSearchParams} from "next/navigation";
+import { publicContact } from "@/lib/publicContact";
 
 function ReservaHoraContent() {
     const searchParams = useSearchParams();
     const fechaInicio = searchParams.get('fecha') || '';
     const horaInicio = searchParams.get('hora') || '';
     const emailPaciente = searchParams.get('email') || '';
+    const profesional = searchParams.get('profesional') || '';
+
+    function formatearFechaHora(fecha, hora) {
+        if (!fecha) return hora || "";
+
+        const [year, month, day] = String(fecha).slice(0, 10).split("-");
+        const meses = [
+            "enero",
+            "febrero",
+            "marzo",
+            "abril",
+            "mayo",
+            "junio",
+            "julio",
+            "agosto",
+            "septiembre",
+            "octubre",
+            "noviembre",
+            "diciembre"
+        ];
+
+        const fechaTexto = year && month && day
+            ? `${Number(day)} de ${meses[Number(month) - 1] || month} de ${year}`
+            : fecha;
+
+        const horaTexto = hora ? String(hora).slice(0, 5) : "";
+        return horaTexto ? `${fechaTexto} a las ${horaTexto}` : fechaTexto;
+    }
+
+    const fechaHoraLegible = formatearFechaHora(fechaInicio, horaInicio);
 
     return (
-        <section className="relative min-h-[70vh] w-full px-4 py-10 flex items-center justify-center bg-white">
+        <section className="relative min-h-screen w-full px-4 pt-28 pb-12 sm:pt-32 sm:pb-16 flex items-center justify-center bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
+            {/* Fondos decorativos */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-32 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-gradient-to-br from-slate-200/60 via-gray-200/40 to-white blur-3xl" />
+                <div className="absolute -bottom-40 right-[-80px] h-[380px] w-[380px] rounded-full bg-gradient-to-br from-gray-200/50 via-slate-200/40 to-white blur-3xl" />
+            </div>
 
             <div className="relative w-full max-w-lg">
                 <div className="rounded-3xl border border-slate-200 bg-white/70 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(2,6,23,0.25)]">
@@ -41,7 +77,7 @@ function ReservaHoraContent() {
                             <p className="mt-2 text-slate-700">
                                 Su hora con{" "}
                                 <span className="font-semibold text-slate-900">
-                  el equipo profesional de Integravali
+                  {profesional || publicContact.companyName}
                 </span>{" "}
                                 ha sido reservada con éxito.
                             </p>
@@ -63,7 +99,7 @@ function ReservaHoraContent() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-semibold text-slate-900">Servicio</p>
-                                        <p className="text-sm text-slate-600">Primera evaluacion domiciliaria</p>
+                                        <p className="text-sm text-slate-600">Agendar primera sesión, Pagaré el día de mi cita</p>
                                     </div>
                                 </div>
 
@@ -77,7 +113,7 @@ function ReservaHoraContent() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-semibold text-slate-900">Fecha y hora</p>
-                                        <p className="text-sm text-slate-600">{fechaInicio} - {horaInicio}</p>
+                                        <p className="text-sm text-slate-600">{fechaHoraLegible}</p>
                                     </div>
                                 </div>
 
@@ -107,7 +143,9 @@ function ReservaHoraContent() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-semibold text-slate-900">Ubicación</p>
-                                        <p className="text-sm text-slate-600">Atencion a domicilio en Region Metropolitana</p>
+                                        <p className="text-sm text-slate-600">
+                                            {[publicContact.companyName, publicContact.address].filter(Boolean).join(", ") || "Ubicacion por confirmar"}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -131,7 +169,7 @@ function ReservaHoraContent() {
                             </a>
 
                             <a
-                                href="https://integravali.cl"
+                                href="/"
                                 className="text-sm font-semibold text-slate-700 hover:text-slate-900"
                             >
                                 Volver al inicio

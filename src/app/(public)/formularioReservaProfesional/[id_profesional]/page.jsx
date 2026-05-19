@@ -344,14 +344,15 @@ export default function FormularioReservaProfesional() {
         }
     }
 
-    function comprobanteAgendamiento() {
+    function comprobanteAgendamiento(servicio) {
         setNombrePaciente("");
         setApellidoPaciente("");
         setDescripcionProfesional("");
         setRut("");
         setTelefono("");
         setEmail("");
-        router.push(`/reserva-hora?fecha=${fechaInicio}&hora=${horaInicio}`);
+        const servicioParam = encodeURIComponent(servicio || "");
+        router.push(`/reserva-hora?fecha=${fechaInicio}&hora=${horaInicio}&servicio=${servicioParam}`);
     }
 
 
@@ -422,7 +423,7 @@ export default function FormularioReservaProfesional() {
             const respuestaBackend = await res.json();
 
             if(respuestaBackend.message === true){
-                comprobanteAgendamiento();
+                comprobanteAgendamiento(servicioSeleccionado);
                 return toast.success('Cita Agendada');
             }
         }catch (error) {
@@ -605,7 +606,31 @@ export default function FormularioReservaProfesional() {
                         <ShadcnButton2 nombre={"RETROCEDER"} funcion={()=>volver(id_profesional)}/>
 
                         <ShadcnButton2
-                            nombre={procesandoPago ? "FINALIZANDO AGENDAMIENTO..." : "FINALIZAR AGENDAMIENTO"}
+                            nombre={"AGENDAR Y PAGAR EN CONSULTA"}
+                            funcion={(e) => {
+                                if (e?.preventDefault) e.preventDefault();
+                                if (e?.stopPropagation) e.stopPropagation();
+
+                                if (procesandoPago) return;
+
+                                return agendarSinPago(
+                                    nombrePaciente,
+                                    apellidoPaciente,
+                                    rut,
+                                    telefono,
+                                    email,
+                                    fechaInicio,
+                                    horaInicio,
+                                    fechaFinalizacion,
+                                    horaFin,
+                                    id_profesional
+                                );
+                            }}
+                            className="bg-[#5F8580] hover:bg-[#4f736f]"
+                        />
+
+                        <ShadcnButton2
+                            nombre={procesandoPago ? "FINALIZANDO AGENDAMIENTO..." : "AGENDAR Y PAGAR"}
                             funcion={(e) => {
                                 if (e?.preventDefault) e.preventDefault();
                                 if (e?.stopPropagation) e.stopPropagation();
